@@ -149,12 +149,14 @@ class PlayerImages:
         ]
 
         # Need to change anchor position to center so that the player doesn't move when flipped
-        for img in walk_seq + [stand]:
+        for img in walk_seq + [stand, jump]:
             img.anchor_x = img.width // 2
         walk_right_seq = [img.get_transform(flip_x=False) for img in walk_seq]
         walk_left_seq = [img.get_transform(flip_x=True) for img in walk_seq]
         idle_right = stand.get_transform(flip_x=False)
         idle_left = stand.get_transform(flip_x=True)
+        jump_right = jump.get_transform(flip_x=False)
+        jump_left = jump.get_transform(flip_x=True)
 
         walk_right_anim = Animation.from_image_sequence(sequence=walk_right_seq, duration=1/20, loop=True)
         walk_left_anim = Animation.from_image_sequence(sequence=walk_left_seq, duration=1/20, loop=True)
@@ -184,12 +186,14 @@ class PlayerImages:
         ]
 
         # Need to change anchor position to center so that the player doesn't move when flipped
-        for img in walk_seq + [stand]:
+        for img in walk_seq + [stand, jump]:
             img.anchor_x = img.width // 2
         walk_right_seq = [img.get_transform(flip_x=False) for img in walk_seq]
         walk_left_seq = [img.get_transform(flip_x=True) for img in walk_seq]
         idle_right = stand.get_transform(flip_x=False)
         idle_left = stand.get_transform(flip_x=True)
+        jump_right = jump.get_transform(flip_x=False)
+        jump_left = jump.get_transform(flip_x=True)
 
         walk_right_anim = Animation.from_image_sequence(sequence=walk_right_seq, duration=1/20, loop=True)
         walk_left_anim = Animation.from_image_sequence(sequence=walk_left_seq, duration=1/20, loop=True)
@@ -219,12 +223,14 @@ class PlayerImages:
         ]
 
         # Need to change anchor position to center so that the player doesn't move when flipped
-        for img in walk_seq + [stand]:
+        for img in walk_seq + [stand, jump]:
             img.anchor_x = img.width // 2
         walk_right_seq = [img.get_transform(flip_x=False) for img in walk_seq]
         walk_left_seq = [img.get_transform(flip_x=True) for img in walk_seq]
         idle_right = stand.get_transform(flip_x=False)
         idle_left = stand.get_transform(flip_x=True)
+        jump_right = jump.get_transform(flip_x=False)
+        jump_left = jump.get_transform(flip_x=True)
 
         walk_right_anim = Animation.from_image_sequence(sequence=walk_right_seq, duration=1/20, loop=True)
         walk_left_anim = Animation.from_image_sequence(sequence=walk_left_seq, duration=1/20, loop=True)
