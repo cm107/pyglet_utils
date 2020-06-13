@@ -1,6 +1,7 @@
 from typing import List
 
 from .resources import PlayerImages
+from .frame import Frame
 from pyglet.sprite import Sprite
 from pyglet.graphics import Batch
 from pyglet.shapes import Circle, Rectangle
@@ -31,12 +32,16 @@ class ArrowKeyBuffer:
         return len(self.buffer) == 0
 
 class Player:
-    def __init__(self, x: int, y: int, batch: Batch=None, debug: bool=False):
+    def __init__(self, x: int, y: int, frame: Frame, name: str='Player1', batch: Batch=None, debug: bool=False):
+        self.name = name
+        self._x, self._y = x, y
+        self._camera_x, self._camera_y = x - frame.x, y - frame.y
+
         # Player Sprite Select Related
         self.player_res_list = [PlayerImages.p1, PlayerImages.p2, PlayerImages.p3]
         self.player_select = 0
         self.player_res = self.player_res_list[self.player_select]
-        self.sprite = Sprite(img=self.player_res.idle_right, x=x, y=y, batch=batch)
+        self.sprite = Sprite(img=self.player_res.jump_right, x=self._camera_x, y=self._camera_y, batch=batch)
 
         # Movement Related
         self.BASE_WALKING_SPEED = 200
@@ -44,50 +49,90 @@ class Player:
         self.vx = 0.0
         self.vy = 0.0
         self.facing = 'right'
-        self.status = 'idle'
+        self.status = 'jumping'
         self.arrow_key_buffer = ArrowKeyBuffer()
+
+        # Frame Related
+        self.frame = frame
+        self.frame.add_obj(obj=self, name=name, is_anchor_x_centered=True)
 
         # Debug
         self.debug = debug
-        self.ref_point = Circle(x=self.x, y=self.y, radius=5, color=(255,0,0))
-        self.ref_rect = Rectangle(x=self.x, y=self.y, width=self.width, height=self.height, color=(0,0,255))
+        self.ref_point = Circle(x=self.camera_x, y=self.camera_y, radius=5, color=(255,0,0))
+        self.ref_rect = Rectangle(x=self.camera_x, y=self.camera_y, width=self.width, height=self.height, color=(0,0,255))
         self.ref_rect.anchor_x = self.ref_rect.width // 2
 
     @property
+    def camera_x(self) -> int:
+        return self._camera_x
+    
+    @camera_x.setter
+    def camera_x(self, camera_x: int):
+        self._camera_x = camera_x
+        self.sprite.x = self._camera_x
+        if self.debug:
+            self.ref_point.x = self._camera_x
+            self.ref_rect.x = self._camera_x
+
+    @property
+    def camera_y(self) -> int:
+        return self._camera_y
+    
+    @camera_y.setter
+    def camera_y(self, camera_y: int):
+        self._camera_y = camera_y
+        self.sprite.y = self._camera_y
+        if self.debug:
+            self.ref_point.y = self._camera_y
+            self.ref_rect.y = self._camera_y
+
+    def set_x(self, x: int, fix_camera: bool=False):
+        if fix_camera:
+            dx = x - self._x
+            self.frame.x = self.frame.x + dx
+        else:
+            self._camera_x = x - self.frame.x
+        self._x = x
+
+    @property
     def x(self) -> int:
-        return self.sprite.x
+        return self._x
     
     @x.setter
     def x(self, x: int):
-        self.sprite.x = x
-        if self.debug:
-            self.ref_point.x = x
-            self.ref_rect.x = x
+       self.set_x(x=x, fix_camera=False)
+
+    def set_y(self, y: int, fix_camera: bool=False):
+        if fix_camera:
+            dy = y - self._y
+            self.frame.y = self.frame.y + dy
+        else:
+            self._camera_y = y - self.frame.y
+        self._y = y
 
     @property
     def y(self) -> int:
-        return self.sprite.y
+        return self._y
     
     @y.setter
     def y(self, y: int):
-        self.sprite.y = y
-        if self.debug:
-            self.ref_point.y = y
-            self.ref_rect.y = y
+        self.set_y(y=y, fix_camera=False)
 
     @property
     def width(self) -> int:
-        # return self.player_res.idle_right.width
         return self.sprite.width
     
     @property
     def height(self) -> int:
-        # return self.player_res.idle_right.height
         return self.sprite.height
 
     @property
+    def position(self) -> (int, int):
+        return (self.x, self.y)
+
+    @property
     def shape(self) -> (int, int):
-        return (self.sprite.width, self.sprite.height)
+        return (self.width, self.height)
 
     def change_player(self, idx: int):
         self.player_res = self.player_res_list[idx]

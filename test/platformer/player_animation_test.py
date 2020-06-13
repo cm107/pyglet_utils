@@ -7,10 +7,20 @@ from pyglet.graphics import Batch
 from pyglet_utils.platformer.player import Player
 from pyglet_utils.platformer.shapes import LineGrid
 from pyglet_utils.platformer.grid import Grid
+from pyglet_utils.platformer.frame import Frame
+from pyglet_utils.platformer.platform import Platform
+
+# TODO: Make it so that the grid is fixed to the world coordinates and does not follow the player.
+# TODO: Implement Contact Recognition so that the jump sprite can be used when I walk off of an edge.
+#       Prerequisite: World Grid
+# TODO: Create a rendering engine that decides which batches to render based on whether members of
+#       a given batch are inside of a RenderBox, which should be just slightly larger than the frame.
 
 # Create and open a window
 window = Window(width=560, height=560, caption='Walk Animation Test')
 fps_display = FPSDisplay(window)
+
+frame = Frame(window=window)
 
 grid = Grid(
     grid_width=window.width, grid_height=window.height,
@@ -23,25 +33,23 @@ grid = Grid(
 # Create Ground
 dirt_img = TileImages.dirtRight
 dirt_tile_w, dirt_tile_h = dirt_img.width, dirt_img.height
-ground_batch = Batch()
 ground_list = []
 n_ground = int(window.width / dirt_tile_w)
-for i in range(n_ground):
-    ground_sprite = Sprite(img=dirt_img, x=i*dirt_tile_w, y=0, batch=ground_batch)
-    ground_list.append(ground_sprite)
-ground_list.append(Sprite(img=dirt_img, x=2*dirt_tile_w, y=dirt_tile_h, batch=ground_batch))
 
-for i, ground in enumerate(ground_list):
-    grid.add_obj(obj=ground, name=f'ground_{i}')
+ground_pos_list = [(i*dirt_tile_w, 0) for i in range(n_ground)] + [(2*dirt_tile_w, dirt_tile_h)]
+platform = Platform(pos_list=ground_pos_list, img_list=[dirt_img], batch=Batch(), frame=frame, name='Platform1')
+
+for block in platform.blocks:
+    grid.add_obj(obj=block, name=block.name)
 
 # Create Player
-player = Player(x=int(4.5*dirt_tile_w), y=int(1*dirt_tile_h), debug=False)
+player = Player(x=int(0.5*window.width), y=int(0.3*window.height), frame=frame, debug=False)
 grid.add_obj(obj=player, name='player', is_anchor_x_centered=True)
 
 @window.event
 def on_draw():
     window.clear()
-    ground_batch.draw()
+    platform.draw()
     player.draw()
     grid.draw()
     fps_display.draw()
@@ -105,7 +113,9 @@ def move_player(dx: int, dy: int):
             collision = True
             break
     if not collision:
-        player.x += dx
+        # player.x += dx
+        player.set_x(x=player.x+dx, fix_camera=True)
+        player.frame.move_camera(dx=-dx, exclude_names=[player.name])
 
     # Move Y
     proposed_player_occupied_spaces = player_grid_obj.get_occupied_spaces(dy=dy)
@@ -115,7 +125,9 @@ def move_player(dx: int, dy: int):
             collision = True
             break
     if not collision:
-        player.y += dy
+        # player.y += dy
+        player.set_y(y=player.y+dy, fix_camera=True)
+        player.frame.move_camera(dy=-dy, exclude_names=[player.name])
     else:
         player.vy = 0
         if dy < 0:
@@ -127,7 +139,7 @@ def move_player(dx: int, dy: int):
                     player.vx = 0
 
 def update(dt):
-    global player, grid
+    global player, grid, platform, frame
 
     dx = player.vx * dt
     dy = player.vy * dt
