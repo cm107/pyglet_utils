@@ -8,6 +8,7 @@ from pyglet.graphics import Batch
 class GridObject(BasicObject['GridObject']):
     def __init__(
         self, obj: Any, name: str, grid_width: int, grid_height: int, tile_width: int, tile_height: int,
+        grid_origin_x: int=0, grid_origin_y: int=0,
         is_anchor_x_centered: bool=False
     ):
         super().__init__()
@@ -21,6 +22,7 @@ class GridObject(BasicObject['GridObject']):
         self._grid_height = grid_height
         self._tile_width = tile_width
         self._tile_height = tile_height
+        self._grid_origin_x, self._grid_origin_y = grid_origin_x, grid_origin_y
         self._is_anchor_x_centered = is_anchor_x_centered
     
     @property
@@ -55,8 +57,8 @@ class GridObject(BasicObject['GridObject']):
         return (self.width, self.height)
 
     def get_bottom_left_space(self, dx: int=0, dy: int=0) -> Tuple[int]:
-        space_x = floor((self.x + dx) / self._tile_width)
-        space_y = floor((self.y + dy) / self._tile_height)
+        space_x = floor((self.x - self._grid_origin_x + dx) / self._tile_width)
+        space_y = floor((self.y - self._grid_origin_y + dy) / self._tile_height)
         return (space_x, space_y)
 
     @property
@@ -64,8 +66,8 @@ class GridObject(BasicObject['GridObject']):
         return self.get_bottom_left_space()
 
     def get_bottom_right_space(self, dx: int=0, dy: int=0) -> Tuple[int]:
-        space_x = floor(((self.x + dx) + self.width - 1) / self._tile_width)
-        space_y = floor((self.y + dy) / self._tile_height)
+        space_x = floor(((self.x - self._grid_origin_x + dx) + self.width - 1) / self._tile_width)
+        space_y = floor((self.y - self._grid_origin_y + dy) / self._tile_height)
         return (space_x, space_y)
 
     @property
@@ -73,8 +75,8 @@ class GridObject(BasicObject['GridObject']):
         return self.get_bottom_right_space()
 
     def get_top_left_space(self, dx: int=0, dy: int=0) -> Tuple[int]:
-        space_x = floor((self.x + dx) / self._tile_width)
-        space_y = floor(((self.y + dy) + self.height - 1) / self._tile_height)
+        space_x = floor((self.x - self._grid_origin_x + dx) / self._tile_width)
+        space_y = floor(((self.y - self._grid_origin_y + dy) + self.height - 1) / self._tile_height)
         return (space_x, space_y)
 
     @property
@@ -82,8 +84,8 @@ class GridObject(BasicObject['GridObject']):
         return self.get_top_left_space()
 
     def get_top_right_space(self, dx: int=0, dy: int=0) -> Tuple[int]:
-        space_x = floor(((self.x + dx) + self.width - 1) / self._tile_width)
-        space_y = floor(((self.y + dy) + self.height - 1) / self._tile_height)
+        space_x = floor(((self.x - self._grid_origin_x + dx) + self.width - 1) / self._tile_width)
+        space_y = floor(((self.y - self._grid_origin_y + dy) + self.height - 1) / self._tile_height)
         return (space_x, space_y)
     
     @property
@@ -112,7 +114,10 @@ class GridObject(BasicObject['GridObject']):
         return self.get_occupied_spaces()
 
 class GridObjectList(BasicHandler['GridObjectList', 'GridObject']):
-    def __init__(self, grid_width: int, grid_height: int, tile_width: int, tile_height: int, grid_obj_list: List[GridObject]=None):
+    def __init__(
+        self, grid_width: int, grid_height: int, tile_width: int, tile_height: int, grid_obj_list: List[GridObject]=None,
+        grid_origin_x: int=0, grid_origin_y: int=0
+    ):
         super().__init__(obj_type=GridObject, obj_list=grid_obj_list)
         self.grid_obj_list = self.obj_list
 
@@ -120,6 +125,7 @@ class GridObjectList(BasicHandler['GridObjectList', 'GridObject']):
         self._grid_height = grid_height
         self._tile_width = tile_width
         self._tile_height = tile_height
+        self._grid_origin_x, self._grid_origin_y = grid_origin_x, grid_origin_y
 
     def get_obj_names_in_region(self, xmin: int, ymin: int, xmax: int, ymax: int) -> List[str]:
         region_obj_names = []
@@ -150,6 +156,7 @@ class GridObjectList(BasicHandler['GridObjectList', 'GridObject']):
 class Grid:
     def __init__(
         self, grid_width: int, grid_height: int, tile_width: int, tile_height: int, contained_obj_list: GridObjectList=None,
+        grid_origin_x: int=0, grid_origin_y: int=0,
         default_grid_visible: bool=False, default_coord_labels_visible: bool=False,
         coord_label_font_size: int=12, coord_label_color: Tuple[int]=(255,255,255), coord_label_opacity: int=255
     ):
@@ -159,11 +166,23 @@ class Grid:
             raise Exception(f'grid_height % tile_height == {grid_height % tile_height} != 0')
         self._grid_width, self._grid_height = grid_width, grid_height
         self._tile_width, self._tile_height = tile_width, tile_height
+        self._grid_origin_x, self._grid_origin_y = grid_origin_x, grid_origin_y
         self.__line_grid = LineGrid(
             grid_width=self.grid_width, grid_height=self.grid_height,
             tile_width=self.tile_width, tile_height=self.tile_height,
+            grid_origin_x=self.grid_origin_x, grid_origin_y=self.grid_origin_y,
             usage='static', color=(255,255,255)
         )
+        
+        # hor_vertex_list, vert_vertex_list = self.__line_grid._vertex_list_grid
+        # for hor_vertex in hor_vertex_list:
+        #     hor_vertex.vertices[0] += 100
+        #     hor_vertex.vertices[2] += 100
+        #     print(f'hor_vertex: {hor_vertex.vertices[:4]}')
+        # for vert_vertex in vert_vertex_list:
+        #     vert_vertex.vertices[1] += 100
+        #     vert_vertex.vertices[3] += 100
+        #     print(f'vert_vertex: {vert_vertex.vertices[:4]}')
 
         self.grid_visible = default_grid_visible
         self.contained_obj_list = contained_obj_list if contained_obj_list is not None else \
@@ -194,6 +213,38 @@ class Grid:
     def tile_height(self) -> int:
         return self._tile_height
     
+    @property
+    def grid_origin_x(self) -> int:
+        return self._grid_origin_x
+    
+    @property
+    def grid_origin_y(self) -> int:
+        return self._grid_origin_y
+    
+    @property
+    def grid_origin(self) -> (int, int):
+        return (self.grid_origin_x, self.grid_origin_y)
+
+    def move(self, dx: int=0, dy: int=0):
+        if dx != 0 or dy != 0:
+            # Move Line Grid
+            hor_vertex_list, vert_vertex_list = self.__line_grid._vertex_list_grid
+            for hor_vertex in hor_vertex_list:
+                hor_vertex.vertices[0] += dx
+                hor_vertex.vertices[1] += dy
+                hor_vertex.vertices[2] += dx
+                hor_vertex.vertices[3] += dy
+            for vert_vertex in vert_vertex_list:
+                vert_vertex.vertices[0] += dx
+                vert_vertex.vertices[1] += dy
+                vert_vertex.vertices[2] += dx
+                vert_vertex.vertices[3] += dy
+            
+            # Move Coordinate Labels
+            for coord_label in self.coord_labels:
+                coord_label.x += dx
+                coord_label.y += dy
+
     def toggle_grid_visible(self):
         self.grid_visible = not self.grid_visible
 
@@ -203,9 +254,9 @@ class Grid:
         n_rows = self.grid_height // self.tile_height
         n_cols = self.grid_width // self.tile_width
         for grid_y in range(n_rows):
-            y_center = int((grid_y + 0.5) * self.tile_height)
+            y_center = int((grid_y + 0.5) * self.tile_height) + self.grid_origin_y
             for grid_x in range(n_cols):
-                x_center = int((grid_x + 0.5) * self.tile_width)
+                x_center = int((grid_x + 0.5) * self.tile_width) + self.grid_origin_x
                 coord_label = Label(
                     text=f'({grid_x}, {grid_y})',
                     font_name='Times New Roman',
@@ -227,12 +278,24 @@ class Grid:
             if self.coord_labels_visible:
                 self.coord_labels_batch.draw()
     
+    def get_coords_str(self, obj_name: str) -> str:
+        grid_obj = self.contained_obj_list.get_obj_from_name(obj_name)
+        xmin, ymin, xmax, ymax = None, None, None, None
+        for x, y in grid_obj.occupied_spaces:
+            xmin = x if xmin is None or x < xmin else xmin
+            ymin = y if ymin is None or y < ymin else ymin
+            xmax = x if xmax is None or x > xmax else xmax
+            ymax = y if ymax is None or y > ymax else ymax
+        coord_str = f'{obj_name}: ({xmin}:{xmax}, {ymin}:{ymax})'
+        return coord_str
+    
     def add_obj(self, obj: Any, name: str, is_anchor_x_centered: bool=False):
         obj_id = id if id is not None else len(self.contained_obj_list)
         grid_obj = GridObject(
             obj=obj, name=name,
             grid_width=self.grid_width, grid_height=self.grid_height,
             tile_width=self.tile_width, tile_height=self.tile_height,
+            grid_origin_x=self.grid_origin_x, grid_origin_y=self.grid_origin_y,
             is_anchor_x_centered=is_anchor_x_centered
         )
         self.contained_obj_list.append(grid_obj)

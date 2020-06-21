@@ -256,7 +256,7 @@ class Rectangle:
             4,
             [0, 1, 2, 1, 2, 3],
             (
-                f'v2i/{self.usage}',
+                f'v2f/{self.usage}',
                 (
                     self.x, self.y,
                     self.x, self.y + self.height,
@@ -301,13 +301,17 @@ class Rectangle:
         self.vertex_list.draw(gl.GL_TRIANGLES)
 
 class GLGrid(metaclass=ABCMeta):
-    def __init__(self, grid_width: int, grid_height: int, tile_width: int, tile_height: int):
+    def __init__(
+        self, grid_width: int, grid_height: int, tile_width: int, tile_height: int,
+        grid_origin_x: int=0, grid_origin_y: int=0
+    ):
         if grid_width % tile_width != 0:
             raise Exception(f'grid_width % tile_width == {grid_width % tile_width} != 0')
         if grid_height % tile_height != 0:
             raise Exception(f'grid_height % tile_height == {grid_height % tile_height} != 0')
         self._grid_width, self._grid_height = grid_width, grid_height
         self._tile_width, self._tile_height = tile_width, tile_height
+        self._grid_origin_x, self._grid_origin_y = grid_origin_x, grid_origin_y
         self.batch = Batch()
         self._vertex_list_grid = []
 
@@ -320,13 +324,33 @@ class GLGrid(metaclass=ABCMeta):
         return self._grid_height
     
     @property
+    def grid_shape(self) -> (int, int):
+        return (self.grid_width, self.grid_height)
+
+    @property
     def tile_width(self) -> int:
         return self._tile_width
     
     @property
     def tile_height(self) -> int:
         return self._tile_height
+
+    @property
+    def tile_shape(self) -> (int, int):
+        return (self.tile_width, self.tile_height)
+
+    @property
+    def grid_origin_x(self) -> int:
+        return self._grid_origin_x
     
+    @property
+    def grid_origin_y(self) -> int:
+        return self._grid_origin_y
+    
+    @property
+    def grid_origin(self) -> (int, int):
+        return (self.grid_origin_x, self.grid_origin_y)
+
     @abstractmethod
     def _init_batch(self, usage: str):
         raise NotImplementedError
@@ -358,7 +382,7 @@ class RectangleGrid(GLGrid):
                     None,
                     [0, 1, 2, 1, 2, 3],
                     (
-                        f'v2i/{usage}',
+                        f'v2f/{usage}',
                         (
                             x, y,
                             x, y + self.tile_height,
@@ -375,10 +399,15 @@ class RectangleGrid(GLGrid):
         return self._vertex_list_grid[row][col]
 
 class LineGrid(GLGrid):
-    def __init__(self, grid_width: int, grid_height: int, tile_width: int, tile_height: int, usage: str='dynamic', color: Tuple[int]=(0,0,255)):
+    def __init__(
+        self, grid_width: int, grid_height: int, tile_width: int, tile_height: int,
+        grid_origin_x: int=0, grid_origin_y: int=0,
+        usage: str='dynamic', color: Tuple[int]=(0,0,255)
+    ):
         super().__init__(
             grid_width=grid_width, grid_height=grid_height,
-            tile_width=tile_width, tile_height=tile_height
+            tile_width=tile_width, tile_height=tile_height,
+            grid_origin_x=grid_origin_x, grid_origin_y=grid_origin_y
         )
         self._init_batch(usage=usage, color=color)
     
@@ -395,10 +424,10 @@ class LineGrid(GLGrid):
                 None,
                 [0, 1],
                 (
-                    f'v2i/{usage}',
+                    f'v2f/{usage}',
                     (
-                        0, y,
-                        self.grid_width, y
+                        self.grid_origin_x+0, self.grid_origin_y+y,
+                        self.grid_origin_x+self.grid_width, self.grid_origin_y+y
                     )
                 ),
                 (f'c3B/{usage}', tuple(list(color)*2))
@@ -413,10 +442,10 @@ class LineGrid(GLGrid):
                 None,
                 [0, 1],
                 (
-                    f'v2i/{usage}',
+                    f'v2f/{usage}',
                     (
-                        x, 0,
-                        x, self.grid_height
+                        self.grid_origin_x+x, self.grid_origin_y+0,
+                        self.grid_origin_x+x, self.grid_origin_y+self.grid_height
                     )
                 ),
                 (f'c3B/{usage}', tuple(list(color)*2))
@@ -430,6 +459,6 @@ class LineGrid(GLGrid):
         if orientation == 'horizontal':
             return self._vertex_list_grid[0][n]
         elif orientation == 'vertical':
-            return self._vertex_list_grid[0][n]
+            return self._vertex_list_grid[1][n]
         else:
             raise Exception
