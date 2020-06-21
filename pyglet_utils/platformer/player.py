@@ -2,6 +2,7 @@ from typing import List
 
 from .resources import PlayerImages
 from .frame import Frame
+from .grid import Grid
 from pyglet.sprite import Sprite
 from pyglet.graphics import Batch
 from pyglet.shapes import Circle, Rectangle
@@ -32,7 +33,7 @@ class ArrowKeyBuffer:
         return len(self.buffer) == 0
 
 class Player:
-    def __init__(self, x: int, y: int, frame: Frame, name: str='Player1', batch: Batch=None, debug: bool=False):
+    def __init__(self, x: int, y: int, frame: Frame, grid: Grid, name: str='Player1', batch: Batch=None, debug: bool=False):
         self.name = name
         self._x, self._y = x, y
         self._camera_x, self._camera_y = x - frame.x, y - frame.y
@@ -55,6 +56,10 @@ class Player:
         # Frame Related
         self.frame = frame
         self.frame.add_obj(obj=self, name=name, is_anchor_x_centered=True)
+
+        # Grid Related
+        self.grid = grid
+        self.grid.add_obj(obj=self, name=name, is_anchor_x_centered=True)
 
         # Debug
         self.debug = debug
@@ -287,3 +292,40 @@ class Player:
                 return None, None
 
         return horizontal_overlap(sprite), vertical_overlap(sprite)
+
+    def move(self, dx: int, dy: int):
+        player_grid_obj = self.grid.contained_obj_list.get_obj_from_name(self.name)
+        other_occupied_spaces = self.grid.contained_obj_list.get_occupied_spaces(exclude_names=[self.name])
+
+        # Move X
+        proposed_player_occupied_spaces = player_grid_obj.get_occupied_spaces(dx=dx)
+        collision = False
+        for proposed_player_occupied_space in proposed_player_occupied_spaces:
+            if proposed_player_occupied_space in other_occupied_spaces:
+                collision = True
+                break
+        if not collision:
+            self.set_x(x=self.x+dx, fix_camera=True)
+            self.frame.move_camera(dx=-dx, exclude_names=[self.name])
+            self.grid.move(dx=-dx)
+
+        # Move Y
+        proposed_player_occupied_spaces = player_grid_obj.get_occupied_spaces(dy=dy)
+        collision = False
+        for proposed_player_occupied_space in proposed_player_occupied_spaces:
+            if proposed_player_occupied_space in other_occupied_spaces:
+                collision = True
+                break
+        if not collision:
+            self.set_y(y=self.y+dy, fix_camera=True)
+            self.frame.move_camera(dy=-dy, exclude_names=[self.name])
+            self.grid.move(dy=-dy)
+        else:
+            self.vy = 0
+            if dy < 0:
+                if self.is_jumping:
+                    self.stop_jumping()
+                    if self.arrow_key_buffer.is_pressed:
+                        self.start_walking(direction=self.arrow_key_buffer.buffer[-1])
+                    else:
+                        self.vx = 0

@@ -426,8 +426,8 @@ class LineGrid(GLGrid):
                 (
                     f'v2f/{usage}',
                     (
-                        self.grid_origin_x+0, self.grid_origin_y+y,
-                        self.grid_origin_x+self.grid_width, self.grid_origin_y+y
+                        0, (self.grid_origin_y+y)%self.grid_height,
+                        self.grid_width, (self.grid_origin_y+y)%self.grid_height
                     )
                 ),
                 (f'c3B/{usage}', tuple(list(color)*2))
@@ -444,8 +444,8 @@ class LineGrid(GLGrid):
                 (
                     f'v2f/{usage}',
                     (
-                        self.grid_origin_x+x, self.grid_origin_y+0,
-                        self.grid_origin_x+x, self.grid_origin_y+self.grid_height
+                        (self.grid_origin_x+x)%self.grid_width, 0,
+                        (self.grid_origin_x+x)%self.grid_width, self.grid_height
                     )
                 ),
                 (f'c3B/{usage}', tuple(list(color)*2))

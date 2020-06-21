@@ -1,4 +1,5 @@
 from .shapes import LineGrid
+from .frame import Frame
 from typing import Any, List, Tuple
 from common_utils.base.basic import BasicObject, BasicHandler
 from math import floor, ceil
@@ -155,7 +156,8 @@ class GridObjectList(BasicHandler['GridObjectList', 'GridObject']):
 
 class Grid:
     def __init__(
-        self, grid_width: int, grid_height: int, tile_width: int, tile_height: int, contained_obj_list: GridObjectList=None,
+        self, grid_width: int, grid_height: int, tile_width: int, tile_height: int, frame: Frame,
+        contained_obj_list: GridObjectList=None,
         grid_origin_x: int=0, grid_origin_y: int=0,
         default_grid_visible: bool=False, default_coord_labels_visible: bool=False,
         coord_label_font_size: int=12, coord_label_color: Tuple[int]=(255,255,255), coord_label_opacity: int=255
@@ -166,6 +168,11 @@ class Grid:
             raise Exception(f'grid_height % tile_height == {grid_height % tile_height} != 0')
         self._grid_width, self._grid_height = grid_width, grid_height
         self._tile_width, self._tile_height = tile_width, tile_height
+        self.frame = frame
+        if grid_origin_x % tile_width != 0:
+            raise Exception(f'grid_origin_x % tile_width == {grid_origin_x % tile_width} != 0')
+        if grid_origin_y % tile_height != 0:
+            raise Exception(f'grid_origin_y % tile_height == {grid_origin_y % tile_height} != 0')
         self._grid_origin_x, self._grid_origin_y = grid_origin_x, grid_origin_y
         self.__line_grid = LineGrid(
             grid_width=self.grid_width, grid_height=self.grid_height,
@@ -174,16 +181,6 @@ class Grid:
             usage='static', color=(255,255,255)
         )
         
-        # hor_vertex_list, vert_vertex_list = self.__line_grid._vertex_list_grid
-        # for hor_vertex in hor_vertex_list:
-        #     hor_vertex.vertices[0] += 100
-        #     hor_vertex.vertices[2] += 100
-        #     print(f'hor_vertex: {hor_vertex.vertices[:4]}')
-        # for vert_vertex in vert_vertex_list:
-        #     vert_vertex.vertices[1] += 100
-        #     vert_vertex.vertices[3] += 100
-        #     print(f'vert_vertex: {vert_vertex.vertices[:4]}')
-
         self.grid_visible = default_grid_visible
         self.contained_obj_list = contained_obj_list if contained_obj_list is not None else \
             GridObjectList(
@@ -230,20 +227,37 @@ class Grid:
             # Move Line Grid
             hor_vertex_list, vert_vertex_list = self.__line_grid._vertex_list_grid
             for hor_vertex in hor_vertex_list:
-                hor_vertex.vertices[0] += dx
-                hor_vertex.vertices[1] += dy
-                hor_vertex.vertices[2] += dx
-                hor_vertex.vertices[3] += dy
+                # hor_vertex.vertices[0] += dx
+                # hor_vertex.vertices[1] += dy
+                # hor_vertex.vertices[2] += dx
+                # hor_vertex.vertices[3] += dy
+                hor_vertex.vertices[1] = (hor_vertex.vertices[1] + dy) % self.frame.height
+                hor_vertex.vertices[3] = (hor_vertex.vertices[3] + dy) % self.frame.height
             for vert_vertex in vert_vertex_list:
-                vert_vertex.vertices[0] += dx
-                vert_vertex.vertices[1] += dy
-                vert_vertex.vertices[2] += dx
-                vert_vertex.vertices[3] += dy
+                # vert_vertex.vertices[0] += dx
+                # vert_vertex.vertices[1] += dy
+                # vert_vertex.vertices[2] += dx
+                # vert_vertex.vertices[3] += dy
+                vert_vertex.vertices[0] = (vert_vertex.vertices[0] + dx) % self.frame.width
+                vert_vertex.vertices[2] = (vert_vertex.vertices[2] + dx) % self.frame.width
             
             # Move Coordinate Labels
             for coord_label in self.coord_labels:
                 coord_label.x += dx
                 coord_label.y += dy
+                needs_new_label = False
+                if coord_label.x >= self.frame.width or coord_label.x < 0:
+                    needs_new_label = True
+                    coord_label.x = coord_label.x % self.frame.width
+                if coord_label.y >= self.frame.height or coord_label.y < 0:
+                    needs_new_label = True
+                    coord_label.y = coord_label.y % self.frame.height
+                if needs_new_label:
+                    label_world_x = coord_label.x + self.frame.x
+                    label_world_y = coord_label.y + self.frame.y
+                    new_x_coord = int((label_world_x - self.grid_origin_x) // self.tile_width)
+                    new_y_coord = int((label_world_y - self.grid_origin_y) // self.tile_height)
+                    coord_label.text = f'({new_x_coord}, {new_y_coord})'
 
     def toggle_grid_visible(self):
         self.grid_visible = not self.grid_visible
@@ -254,11 +268,11 @@ class Grid:
         n_rows = self.grid_height // self.tile_height
         n_cols = self.grid_width // self.tile_width
         for grid_y in range(n_rows):
-            y_center = int((grid_y + 0.5) * self.tile_height) + self.grid_origin_y
+            y_center = int((grid_y + 0.5) * self.tile_height)
             for grid_x in range(n_cols):
-                x_center = int((grid_x + 0.5) * self.tile_width) + self.grid_origin_x
+                x_center = int((grid_x + 0.5) * self.tile_width)
                 coord_label = Label(
-                    text=f'({grid_x}, {grid_y})',
+                    text=f'({grid_x-self.grid_origin_x//self.tile_width}, {grid_y-self.grid_origin_y//self.tile_height})',
                     font_name='Times New Roman',
                     font_size=font_size,
                     x=x_center, y=y_center,

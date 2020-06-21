@@ -11,8 +11,6 @@ from pyglet_utils.platformer.grid import Grid
 from pyglet_utils.platformer.frame import Frame
 from pyglet_utils.platformer.platform import Platform
 
-# TODO: Display player's grid coordinates.
-# TODO: Make it so that the grid is fixed to the world coordinates and does not follow the player.
 # TODO: Implement Contact Recognition so that the jump sprite can be used when I walk off of an edge.
 #       Prerequisite: World Grid
 # TODO: Create a rendering engine that decides which batches to render based on whether members of
@@ -26,10 +24,12 @@ class GameWindow(Window):
         self.frame = Frame(window=self)
 
         self.grid = Grid(
-            grid_width=self.width-100, grid_height=self.height-100,
+            grid_width=self.width, grid_height=self.height,
             tile_width=70, tile_height=70,
-            grid_origin_x=0, grid_origin_y=0,
-            default_grid_visible=False,
+            frame=self.frame,
+            grid_origin_x=70, grid_origin_y=70,
+            default_grid_visible=True,
+            default_coord_labels_visible=True,
             coord_label_color=(255,0,0), coord_label_opacity=255,
             coord_label_font_size=8
         )
@@ -47,8 +47,7 @@ class GameWindow(Window):
             self.grid.add_obj(obj=block, name=block.name)
 
         # Create Player
-        self.player = Player(x=int(0.5*self.width), y=int(0.3*self.height), frame=self.frame, debug=False)
-        self.grid.add_obj(obj=self.player, name=self.player.name, is_anchor_x_centered=True)
+        self.player = Player(x=int(0.5*self.width), y=int(0.3*self.height), frame=self.frame, grid=self.grid, debug=False)
         self.player_coord_label = Label(
             text=self.grid.get_coords_str(obj_name=self.player.name),
             font_name='Times New Roman',
@@ -108,50 +107,11 @@ class GameWindow(Window):
                 else:
                     self.player.start_walking(direction=self.player.arrow_key_buffer.buffer[-1])
 
-    def move_player(self, dx: int, dy: int):
-        player_grid_obj = self.grid.contained_obj_list.get_obj_from_name(self.player.name)
-        other_occupied_spaces = self.grid.contained_obj_list.get_occupied_spaces(exclude_names=[self.player.name])
-
-        # Move X
-        proposed_player_occupied_spaces = player_grid_obj.get_occupied_spaces(dx=dx)
-        collision = False
-        for proposed_player_occupied_space in proposed_player_occupied_spaces:
-            if proposed_player_occupied_space in other_occupied_spaces:
-                collision = True
-                break
-        if not collision:
-            # player.x += dx
-            self.player.set_x(x=self.player.x+dx, fix_camera=True)
-            self.player.frame.move_camera(dx=-dx, exclude_names=[self.player.name])
-            self.grid.move(dx=-dx)
-
-        # Move Y
-        proposed_player_occupied_spaces = player_grid_obj.get_occupied_spaces(dy=dy)
-        collision = False
-        for proposed_player_occupied_space in proposed_player_occupied_spaces:
-            if proposed_player_occupied_space in other_occupied_spaces:
-                collision = True
-                break
-        if not collision:
-            # player.y += dy
-            self.player.set_y(y=self.player.y+dy, fix_camera=True)
-            self.player.frame.move_camera(dy=-dy, exclude_names=[self.player.name])
-            self.grid.move(dy=-dy)
-        else:
-            self.player.vy = 0
-            if dy < 0:
-                if self.player.is_jumping:
-                    self.player.stop_jumping()
-                    if self.player.arrow_key_buffer.is_pressed:
-                        self.player.start_walking(direction=self.player.arrow_key_buffer.buffer[-1])
-                    else:
-                        self.player.vx = 0
-
     def update(self, dt):
         dx = self.player.vx * dt
         dy = self.player.vy * dt
         self.player.vy -= 1*9.81*dt*60
-        self.move_player(dx=dx, dy=dy)
+        self.player.move(dx=dx, dy=dy)
         self.player_coord_label.text = self.grid.get_coords_str(obj_name=self.player.name)
 
     def run(self):
@@ -159,6 +119,6 @@ class GameWindow(Window):
         pyglet.app.run()
 
 game = GameWindow(
-    width=560+100, height=560+100, caption='Walk Animation Test'
+    width=700, height=700, caption='Walk Animation Test'
 )
 game.run()
