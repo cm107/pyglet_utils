@@ -56,6 +56,20 @@ class GameWindow(Window):
             color=tuple([0, 255, 0] + [255])
         )
 
+        # Pause Related
+        self.paused = False
+        self.paused_text = Label(
+            text='Paused',
+            font_name='Times New Roman',
+            font_size=30,
+            x=int(0.50*self.width), y=int(0.98*self.height),
+            color=tuple([255, 100, 100] + [255]),
+            anchor_x='center', anchor_y='top', bold=True
+        )
+
+    def toggle_pause(self):
+        self.paused = not self.paused
+
     def on_draw(self):
         self.clear()
         self.platform.draw()
@@ -63,56 +77,74 @@ class GameWindow(Window):
         self.grid.draw()
         self.fps_display.draw()
         self.player_coord_label.draw()
+        if self.paused:
+            self.paused_text.draw()
 
     def on_key_press(self, symbol, modifiers):
-        if symbol == key.LEFT:
-            self.player.arrow_key_buffer.press('left')
-            if not self.player.is_jumping:
-                self.player.start_walking(direction='left')
-            else:
-                self.player.face(direction='left')
-        elif symbol == key.RIGHT:
-            self.player.arrow_key_buffer.press('right')
-            if not self.player.is_jumping:
-                self.player.start_walking(direction='right')
-            else:
-                self.player.face(direction='right')
-        elif symbol == key.N:
-            self.player.toggle_player()
-        elif symbol == key.SPACE:
-            if not self.player.is_jumping:
-                self.player.start_jumping()
-        elif symbol == key.G:
-            self.grid.toggle_grid_visible()
-        elif symbol == key.C:
-            self.grid.toggle_coord_labels_visible()
-        elif symbol == key.D:
-            self.player.toggle_debug()
-        elif symbol == key.ESCAPE:
-            self.close()
+        if not self.paused:
+            if symbol == key.LEFT:
+                self.player.arrow_key_buffer.press('left')
+                if not self.player.is_jumping:
+                    self.player.start_walking(direction='left')
+                else:
+                    self.player.face(direction='left')
+            elif symbol == key.RIGHT:
+                self.player.arrow_key_buffer.press('right')
+                if not self.player.is_jumping:
+                    self.player.start_walking(direction='right')
+                else:
+                    self.player.face(direction='right')
+            elif symbol == key.N:
+                self.player.toggle_player()
+            elif symbol == key.SPACE:
+                if not self.player.is_jumping:
+                    self.player.start_jumping()
+            elif symbol == key.G:
+                self.grid.toggle_grid_visible()
+            elif symbol == key.C:
+                self.grid.toggle_coord_labels_visible()
+            elif symbol == key.D:
+                self.player.toggle_debug()
+            elif symbol == key.P:
+                self.toggle_pause()
+            elif symbol == key.ESCAPE:
+                self.close()
+        else:
+            if symbol == key.P:
+                self.toggle_pause()
+            elif symbol == key.ESCAPE:
+                self.close()
+            elif symbol == key.G:
+                self.grid.toggle_grid_visible()
+            elif symbol == key.C:
+                self.grid.toggle_coord_labels_visible()
+            elif symbol == key.D:
+                self.player.toggle_debug()
 
     def on_key_release(self, symbol, modifiers):
-        if symbol == key.LEFT:
-            self.player.arrow_key_buffer.release('left')
-            if self.player.is_walking:
-                if self.player.arrow_key_buffer.is_released:
-                    self.player.stop_walking()
-                else:
-                    self.player.start_walking(direction=self.player.arrow_key_buffer.buffer[-1])
-        elif symbol == key.RIGHT:
-            self.player.arrow_key_buffer.release('right')
-            if self.player.is_walking:
-                if self.player.arrow_key_buffer.is_released:
-                    self.player.stop_walking()
-                else:
-                    self.player.start_walking(direction=self.player.arrow_key_buffer.buffer[-1])
+        if not self.paused:
+            if symbol == key.LEFT:
+                self.player.arrow_key_buffer.release('left')
+                if self.player.is_walking:
+                    if self.player.arrow_key_buffer.is_released:
+                        self.player.stop_walking()
+                    else:
+                        self.player.start_walking(direction=self.player.arrow_key_buffer.buffer[-1])
+            elif symbol == key.RIGHT:
+                self.player.arrow_key_buffer.release('right')
+                if self.player.is_walking:
+                    if self.player.arrow_key_buffer.is_released:
+                        self.player.stop_walking()
+                    else:
+                        self.player.start_walking(direction=self.player.arrow_key_buffer.buffer[-1])
 
     def update(self, dt):
-        dx = self.player.vx * dt
-        dy = self.player.vy * dt
-        self.player.vy -= 1*9.81*dt*60
-        self.player.move(dx=dx, dy=dy)
-        self.player_coord_label.text = self.grid.get_coords_str(obj_name=self.player.name)
+        if not self.paused:
+            dx = self.player.vx * dt
+            dy = self.player.vy * dt
+            self.player.vy -= 1*9.81*dt*60
+            self.player.move(dx=dx, dy=dy)
+            self.player_coord_label.text = self.grid.get_coords_str(obj_name=self.player.name)
 
     def run(self):
         pyglet.clock.schedule_interval(self.update, 1/60)
