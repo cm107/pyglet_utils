@@ -241,12 +241,19 @@ class GL_Quads2D(
         super().draw(idx_order=idx_order, mode=gl.GL_QUADS)
 
 class Rectangle:
-    def __init__(self, x: int, y: int, width: int, height: int, color: Tuple[int]=(255,0,0), usage: str='dynamic'):
+    def __init__(
+        self, x: int, y: int, width: int, height: int, color: Tuple[int]=(255,0,0),
+        transparency: int=255, usage: str='dynamic'
+    ):
+        gl.glEnable(gl.GL_BLEND)
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+
         self.x = x
         self.y = y
         self.width = width
         self.height = height
         self.color = color
+        self.transparency = transparency
         check_value(usage, valid_value_list=['static', 'dynamic', 'stream'])
         self.usage = usage
         self.vertex_list = self.__get_indexed_vertex_list()
@@ -264,7 +271,7 @@ class Rectangle:
                     self.x + self.width, self.y + self.height
                 )
             ),
-            (f'c3B/{self.usage}', tuple(list(self.color)*4))
+            (f'c4B/{self.usage}', tuple((list(self.color) + [self.transparency])*4))
         )
 
     def __update_vertices(self):

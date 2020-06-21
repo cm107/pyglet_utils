@@ -1,4 +1,4 @@
-from .shapes import LineGrid
+from .shapes import LineGrid, Rectangle
 from .frame import Frame
 from typing import Any, List, Tuple
 from common_utils.base.basic import BasicObject, BasicHandler
@@ -17,6 +17,10 @@ class GridObject(BasicObject['GridObject']):
         assert hasattr(obj, 'y')
         assert hasattr(obj, 'width')
         assert hasattr(obj, 'height')
+        assert hasattr(obj, 'x_left')
+        assert hasattr(obj, 'x_right')
+        assert hasattr(obj, 'y_bottom')
+        assert hasattr(obj, 'y_top')
         self.obj = obj
         self.name = name
         self._grid_width = grid_width
@@ -25,6 +29,13 @@ class GridObject(BasicObject['GridObject']):
         self._tile_height = tile_height
         self._grid_origin_x, self._grid_origin_y = grid_origin_x, grid_origin_y
         self._is_anchor_x_centered = is_anchor_x_centered
+
+        # Contact Related
+        self.is_in_contact = False
+        self.contact_rectangle = Rectangle(
+            x=self.x, y=self.y, width=self.width, height=self.height,
+            color=(0,255,255), transparency=100
+        )
     
     @property
     def x(self) -> int:
@@ -35,8 +46,11 @@ class GridObject(BasicObject['GridObject']):
 
     @x.setter
     def x(self, x: int):
-        self.obj.x = x
-    
+        if not self._is_anchor_x_centered:
+            self.obj.x = x
+        else:
+            self.obj.x = x + 0.5*self.obj.width
+
     @property
     def y(self) -> int:
         return int(self.obj.y)
@@ -56,6 +70,38 @@ class GridObject(BasicObject['GridObject']):
     @property
     def shape(self) -> (int, int):
         return (self.width, self.height)
+
+    @property
+    def x_left(self) -> int:
+        return self.obj.x_left
+    
+    @x_left.setter
+    def x_left(self, x_left: int):
+        self.obj.x_left = x_left
+    
+    @property
+    def x_right(self) -> int:
+        return self.obj.x_right
+    
+    @x_right.setter
+    def x_right(self, x_right: int):
+        self.obj.x_right = x_right
+    
+    @property
+    def y_bottom(self) -> int:
+        return self.obj.y_bottom
+    
+    @y_bottom.setter
+    def y_bottom(self, y_bottom: int):
+        self.obj.y_bottom = y_bottom
+    
+    @property
+    def y_top(self) -> int:
+        return self.obj.y_top
+    
+    @y_top.setter
+    def y_top(self, y_top: int):
+        self.obj.y_top = y_top
 
     def get_bottom_left_space(self, dx: int=0, dy: int=0) -> Tuple[int]:
         space_x = floor((self.x - self._grid_origin_x + dx) / self._tile_width)
@@ -113,7 +159,7 @@ class GridObject(BasicObject['GridObject']):
     @property
     def occupied_spaces(self) -> List[Tuple[int]]:
         return self.get_occupied_spaces()
-
+    
 class GridObjectList(BasicHandler['GridObjectList', 'GridObject']):
     def __init__(
         self, grid_width: int, grid_height: int, tile_width: int, tile_height: int, grid_obj_list: List[GridObject]=None,
@@ -143,6 +189,12 @@ class GridObjectList(BasicHandler['GridObjectList', 'GridObject']):
                 return obj
         raise Exception(f"Couldn't find grid object of name {name}")
 
+    def get_objects(self, exclude_names: List[str]=None) -> List[GridObject]:
+        if exclude_names is not None:
+            return [grid_obj for grid_obj in self if grid_obj.name not in exclude_names]
+        else:
+            return self.obj_list
+
     def get_occupied_spaces(self, exclude_names: List[str]=None) -> List[Tuple[int]]:
         spaces = []
         for obj in self:
@@ -153,6 +205,11 @@ class GridObjectList(BasicHandler['GridObjectList', 'GridObject']):
     @property
     def occupied_spaces(self) -> List[Tuple[int]]:
         return self.get_occupied_spaces()
+    
+    def draw_contacts(self):
+        for grid_obj in self:
+            if grid_obj.is_in_contact:
+                grid_obj.contact_rectangle.draw()
 
 class Grid:
     def __init__(
@@ -194,6 +251,9 @@ class Grid:
         )
         self.coord_labels_visible = default_coord_labels_visible
 
+        # Contact Related
+        self.show_contacts = False
+
     @property
     def grid_width(self) -> int:
         return self._grid_width
@@ -227,17 +287,9 @@ class Grid:
             # Move Line Grid
             hor_vertex_list, vert_vertex_list = self.__line_grid._vertex_list_grid
             for hor_vertex in hor_vertex_list:
-                # hor_vertex.vertices[0] += dx
-                # hor_vertex.vertices[1] += dy
-                # hor_vertex.vertices[2] += dx
-                # hor_vertex.vertices[3] += dy
                 hor_vertex.vertices[1] = (hor_vertex.vertices[1] + dy) % self.frame.height
                 hor_vertex.vertices[3] = (hor_vertex.vertices[3] + dy) % self.frame.height
             for vert_vertex in vert_vertex_list:
-                # vert_vertex.vertices[0] += dx
-                # vert_vertex.vertices[1] += dy
-                # vert_vertex.vertices[2] += dx
-                # vert_vertex.vertices[3] += dy
                 vert_vertex.vertices[0] = (vert_vertex.vertices[0] + dx) % self.frame.width
                 vert_vertex.vertices[2] = (vert_vertex.vertices[2] + dx) % self.frame.width
             
@@ -258,6 +310,10 @@ class Grid:
                     new_x_coord = int((label_world_x - self.grid_origin_x) // self.tile_width)
                     new_y_coord = int((label_world_y - self.grid_origin_y) // self.tile_height)
                     coord_label.text = f'({new_x_coord}, {new_y_coord})'
+
+            # Move Contact Rectangles
+            for grid_obj in self.contained_obj_list:
+                grid_obj.contact_rectangle.move(dx=dx, dy=dy)
 
     def toggle_grid_visible(self):
         self.grid_visible = not self.grid_visible
@@ -291,6 +347,8 @@ class Grid:
             self.__line_grid.draw()
             if self.coord_labels_visible:
                 self.coord_labels_batch.draw()
+        if self.show_contacts:
+            self.contained_obj_list.draw_contacts()
     
     def get_coords_str(self, obj_name: str) -> str:
         grid_obj = self.contained_obj_list.get_obj_from_name(obj_name)
@@ -313,3 +371,10 @@ class Grid:
             is_anchor_x_centered=is_anchor_x_centered
         )
         self.contained_obj_list.append(grid_obj)
+    
+    def toggle_show_contacts(self):
+        self.show_contacts = not self.show_contacts
+    
+    def reset_contacts(self):
+        for grid_obj in self.contained_obj_list:
+            grid_obj.is_in_contact = False

@@ -11,8 +11,6 @@ from pyglet_utils.platformer.grid import Grid
 from pyglet_utils.platformer.frame import Frame
 from pyglet_utils.platformer.platform import Platform
 
-# TODO: Implement Contact Recognition so that the jump sprite can be used when I walk off of an edge.
-#       Prerequisite: World Grid
 # TODO: Create a rendering engine that decides which batches to render based on whether members of
 #       a given batch are inside of a RenderBox, which should be just slightly larger than the frame.
 
@@ -28,7 +26,7 @@ class GameWindow(Window):
             tile_width=70, tile_height=70,
             frame=self.frame,
             grid_origin_x=70, grid_origin_y=70,
-            default_grid_visible=True,
+            default_grid_visible=False,
             default_coord_labels_visible=True,
             coord_label_color=(255,0,0), coord_label_opacity=255,
             coord_label_font_size=8
@@ -37,17 +35,18 @@ class GameWindow(Window):
         # Create Ground
         dirt_img = TileImages.dirtRight
         dirt_tile_w, dirt_tile_h = dirt_img.width, dirt_img.height
-        ground_list = []
         n_ground = int(self.width / dirt_tile_w)
 
-        ground_pos_list = [(i*dirt_tile_w, 0) for i in range(n_ground)] + [(2*dirt_tile_w, dirt_tile_h)]
+        ground_pos_list = [(i*dirt_tile_w, 0) for i in range(n_ground)] + \
+            [(2*dirt_tile_w, i*dirt_tile_h) for i in range(1,3)] + \
+            [(6*dirt_tile_w, i*dirt_tile_h) for i in range(1,2)]
         self.platform = Platform(pos_list=ground_pos_list, img_list=[dirt_img], batch=Batch(), frame=self.frame, name='Platform1')
 
         for block in self.platform.blocks:
             self.grid.add_obj(obj=block, name=block.name)
 
         # Create Player
-        self.player = Player(x=int(0.5*self.width), y=int(0.3*self.height), frame=self.frame, grid=self.grid, debug=False)
+        self.player = Player(x=int(0.5*self.width), y=int(0.1*self.height), frame=self.frame, grid=self.grid, debug=False)
         self.player_coord_label = Label(
             text=self.grid.get_coords_str(obj_name=self.player.name),
             font_name='Times New Roman',
@@ -140,9 +139,9 @@ class GameWindow(Window):
 
     def update(self, dt):
         if not self.paused:
+            self.player.vy -= 1*9.81*dt*60
             dx = self.player.vx * dt
             dy = self.player.vy * dt
-            self.player.vy -= 1*9.81*dt*60
             self.player.move(dx=dx, dy=dy)
             self.player_coord_label.text = self.grid.get_coords_str(obj_name=self.player.name)
 

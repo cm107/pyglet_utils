@@ -1,8 +1,9 @@
-from typing import List
+from typing import List, cast
 
 from .resources import PlayerImages
 from .frame import Frame
-from .grid import Grid
+from .grid import Grid, GridObject
+from ..lib.exception_handler import Error
 from pyglet.sprite import Sprite
 from pyglet.graphics import Batch
 from pyglet.shapes import Circle, Rectangle
@@ -60,6 +61,10 @@ class Player:
         # Grid Related
         self.grid = grid
         self.grid.add_obj(obj=self, name=name, is_anchor_x_centered=True)
+        self.up_contact_obj_list = cast(List[GridObject], [])
+        self.down_contact_obj_list = cast(List[GridObject], [])
+        self.left_contact_obj_list = cast(List[GridObject], [])
+        self.right_contact_obj_list = cast(List[GridObject], [])
 
         # Debug
         self.debug = debug
@@ -149,6 +154,7 @@ class Player:
 
     def toggle_debug(self):
         self.debug = not self.debug
+        self.grid.show_contacts = not self.grid.show_contacts
 
     def change_sprite(self, image):
         self.sprite.image = image
@@ -227,7 +233,11 @@ class Player:
         self.status = 'jumping'
         self.vy = self.BASE_JUMPING_SPEED
         self.update_sprite()
-    
+
+    def start_falling(self):
+        self.status = 'jumping'
+        self.update_sprite()
+
     def stop_jumping(self):
         self.status = 'idle'
         self.vy = 0
@@ -242,90 +252,114 @@ class Player:
 
     @property
     def x_left(self) -> int:
-        return self.x
+        return self.x - self.width//2
+
+    @x_left.setter
+    def x_left(self, x_left: int):
+        self.x = x_left - self.width//2
 
     @property
     def x_right(self) -> int:
-        return self.x + self.width
+        return self.x + self.width//2
+
+    @x_right.setter
+    def x_right(self, x_right: int):
+        self.x = x_right - self.width//2
 
     @property
     def y_bottom(self) -> int:
         return self.y
 
+    @y_bottom.setter
+    def y_bottom(self, y_bottom: int):
+        self.y = y_bottom
+
     @property
     def y_top(self) -> int:
         return self.y + self.height
 
-    def overlaping_with(self, sprite: Sprite) -> (str, str):
-        def left_edge(sprite: Sprite) -> int:
-            return sprite.x
-        
-        def right_edge(sprite: Sprite) -> int:
-            return sprite.x + sprite.width
-
-        def bottom_edge(sprite: Sprite) -> int:
-            return sprite.y
-
-        def top_edge(sprite: Sprite) -> int:
-            return sprite.y + sprite.height
-
-        def inside_width(x: int, sprite: Sprite) -> bool:
-            return x > sprite.x and x < sprite.x + sprite.width
-
-        def inside_height(y: int, sprite: Sprite) -> bool:
-            return y > sprite.y and y < sprite.y + sprite.height
-
-        def horizontal_overlap(sprite: Sprite) -> (str, int):
-            if inside_width(x=self.x_right, sprite=sprite):
-                return 'right', self.x_right - left_edge(sprite)
-            elif inside_width(x=self.x_left, sprite=sprite):
-                return 'left', right_edge(sprite) - self.x_left
-            else:
-                return None, None
-
-        def vertical_overlap(sprite: Sprite) -> (str, int):
-            if inside_height(y=self.y_top, sprite=sprite):
-                return 'top', self.y_top - bottom_edge(sprite)
-            elif inside_height(y=self.y_bottom, sprite=sprite):
-                return 'bottom', top_edge(sprite) - self.y_bottom
-            else:
-                return None, None
-
-        return horizontal_overlap(sprite), vertical_overlap(sprite)
+    @y_top.setter
+    def y_top(self, y_top: int):
+        self.y = y_top - self.height
 
     def move(self, dx: int, dy: int):
         player_grid_obj = self.grid.contained_obj_list.get_obj_from_name(self.name)
-        other_occupied_spaces = self.grid.contained_obj_list.get_occupied_spaces(exclude_names=[self.name])
+        other_grid_objects = self.grid.contained_obj_list.get_objects(exclude_names=[self.name])
+        self.up_contact_obj_list = []
+        self.down_contact_obj_list = []
+        self.left_contact_obj_list = []
+        self.right_contact_obj_list = []
+        self.grid.reset_contacts()
 
         # Move X
         proposed_player_occupied_spaces = player_grid_obj.get_occupied_spaces(dx=dx)
         collision = False
         for proposed_player_occupied_space in proposed_player_occupied_spaces:
-            if proposed_player_occupied_space in other_occupied_spaces:
-                collision = True
-                break
+            for other_grid_object in other_grid_objects:
+                if proposed_player_occupied_space in other_grid_object.occupied_spaces:
+                    other_grid_object.is_in_contact = True
+                    if dx > 0:
+                        self.right_contact_obj_list.append(other_grid_object)
+                    elif dx < 0:
+                        self.left_contact_obj_list.append(other_grid_object)
+                    else:
+                        raise Error(f'Player got stuck in object in x direction.')
+                    collision = True
         if not collision:
             self.set_x(x=self.x+dx, fix_camera=True)
             self.frame.move_camera(dx=-dx, exclude_names=[self.name])
             self.grid.move(dx=-dx)
+        else:
+            if len(self.left_contact_obj_list) > 0:
+                dx_adjustment = self.left_contact_obj_list[0].x_right + 1 - self.x_left
+                self.set_x(x=self.x+dx_adjustment, fix_camera=True)
+                self.frame.move_camera(dx=-dx_adjustment, exclude_names=[self.name])
+                self.grid.move(dx=-dx_adjustment)
+            elif len(self.right_contact_obj_list) > 0:
+                dx_adjustment = self.right_contact_obj_list[0].x_left - self.x_right
+                self.set_x(x=self.x+dx_adjustment, fix_camera=True)
+                self.frame.move_camera(dx=-dx_adjustment, exclude_names=[self.name])
+                self.grid.move(dx=-dx_adjustment)
+            else:
+                raise Exception
 
         # Move Y
         proposed_player_occupied_spaces = player_grid_obj.get_occupied_spaces(dy=dy)
         collision = False
         for proposed_player_occupied_space in proposed_player_occupied_spaces:
-            if proposed_player_occupied_space in other_occupied_spaces:
-                collision = True
-                break
+            for other_grid_object in other_grid_objects:
+                if proposed_player_occupied_space in other_grid_object.occupied_spaces:
+                    other_grid_object.is_in_contact = True
+                    if dy > 0:
+                        self.up_contact_obj_list.append(other_grid_object)
+                    elif dy < 0:
+                        self.down_contact_obj_list.append(other_grid_object)
+                    else:
+                        raise Error(f'Player got stuck in object in y direction.')
+                    collision = True
         if not collision:
             self.set_y(y=self.y+dy, fix_camera=True)
             self.frame.move_camera(dy=-dy, exclude_names=[self.name])
             self.grid.move(dy=-dy)
+            self.start_falling()
         else:
             self.vy = 0
-            if dy < 0:
+            if len(self.down_contact_obj_list) > 0:
+                dy_adjustment = self.down_contact_obj_list[0].y_top - self.y_bottom
+                self.set_y(y=self.y+dy_adjustment, fix_camera=True)
+                self.frame.move_camera(dy=-dy_adjustment, exclude_names=[self.name])
+                self.grid.move(dy=-dy_adjustment)
+
                 if self.is_jumping:
                     self.stop_jumping()
                     if self.arrow_key_buffer.is_pressed:
                         self.start_walking(direction=self.arrow_key_buffer.buffer[-1])
                     else:
                         self.vx = 0
+            elif len(self.up_contact_obj_list) > 0:
+                dy_adjustment = self.up_contact_obj_list[0].y_bottom - self.y_top
+                self.set_y(y=self.y+dy_adjustment, fix_camera=True)
+                self.frame.move_camera(dy=-dy_adjustment, exclude_names=[self.name])
+                self.grid.move(dy=-dy_adjustment)
+            else:
+                raise Exception

@@ -82,6 +82,38 @@ class GameObject:
         return self.sprite.height
 
     @property
+    def x_left(self) -> int:
+        return self.x
+    
+    @x_left.setter
+    def x_left(self, x_left: int):
+        self.x = x_left
+    
+    @property
+    def x_right(self) -> int:
+        return self.x + self.width
+    
+    @x_right.setter
+    def x_right(self, x_right: int):
+        self.x = x_right - self.height
+    
+    @property
+    def y_bottom(self) -> int:
+        return self.y
+    
+    @y_bottom.setter
+    def y_bottom(self, y_bottom: int):
+        self.y = y_bottom
+    
+    @property
+    def y_top(self) -> int:
+        return self.y + self.height
+    
+    @y_top.setter
+    def y_top(self, y_top: int):
+        self.y = y_top - self.height
+
+    @property
     def position(self) -> (int, int):
         return (self.x, self.y)
 
