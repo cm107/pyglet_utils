@@ -3,7 +3,6 @@ from pyglet.graphics import Batch
 from pyglet.image import AbstractImage, Animation
 from .frame import Frame
 
-from common_utils.check_utils import check_type
 from logger import logger
 
 class GameObject:
@@ -22,6 +21,17 @@ class GameObject:
         self.batch = batch
         self.frame = frame
         self.frame.add_obj(self, name=name, is_anchor_x_centered=is_anchor_x_centered)
+        self._is_anchor_x_centered = is_anchor_x_centered
+
+    @property
+    def is_anchor_x_centered(self) -> bool:
+        return self._is_anchor_x_centered
+    
+    @is_anchor_x_centered.setter
+    def is_anchor_x_centered(self, is_anchor_x_centered: bool):
+        frame_obj = self.frame.get_obj(name=self.name)
+        frame_obj.is_anchor_x_centered = is_anchor_x_centered
+        self._is_anchor_x_centered = is_anchor_x_centered
 
     @property
     def camera_x(self) -> int:
@@ -82,20 +92,40 @@ class GameObject:
         return self.sprite.height
 
     @property
+    def position(self) -> (int, int):
+        return (self.x, self.y)
+
+    @property
+    def shape(self) -> (int, int):
+        return (self.width, self.height)
+
+    @property
     def x_left(self) -> int:
-        return self.x
+        if not self.is_anchor_x_centered:
+            return self.x
+        else:
+            return self.x - self.width//2
     
     @x_left.setter
     def x_left(self, x_left: int):
-        self.x = x_left
+        if not self.is_anchor_x_centered:
+            self.x = x_left
+        else:
+            self.x = x_left - self.width//2
     
     @property
     def x_right(self) -> int:
-        return self.x + self.width
+        if not self.is_anchor_x_centered:
+            return self.x + self.width
+        else:
+            return self.x + self.width//2
     
     @x_right.setter
     def x_right(self, x_right: int):
-        self.x = x_right - self.height
+        if not self.is_anchor_x_centered:
+            self.x = x_right - self.height
+        else:
+            self.x = x_right - self.width//2
     
     @property
     def y_bottom(self) -> int:
@@ -112,15 +142,10 @@ class GameObject:
     @y_top.setter
     def y_top(self, y_top: int):
         self.y = y_top - self.height
-
-    @property
-    def position(self) -> (int, int):
-        return (self.x, self.y)
-
-    @property
-    def shape(self) -> (int, int):
-        return (self.sprite.width, self.sprite.height)
     
     def move(self, dx: int, dy: int):
         self.x += dx
         self.y += dy
+    
+    def draw(self):
+        self.sprite.draw()

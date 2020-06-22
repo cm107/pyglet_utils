@@ -11,8 +11,13 @@ from pyglet_utils.platformer.grid import Grid
 from pyglet_utils.platformer.frame import Frame
 from pyglet_utils.platformer.platform import Platform
 
+# TODO: Create RenderBox as a member of GameWindow. RenderBox should be just slightly larger than Frame.
 # TODO: Create a rendering engine that decides which batches to render based on whether members of
-#       a given batch are inside of a RenderBox, which should be just slightly larger than the frame.
+#       a given batch are inside of a RenderBox.
+# TODO: Implement interactive map maker (based on mouse input).
+#       Prerequisite: Rendering Engine
+# TODO: Implement map save/load.
+#       Prerequisite: Map maker
 
 class GameWindow(Window):
     def __init__(self, width: int, height: int, caption: str):
@@ -46,7 +51,7 @@ class GameWindow(Window):
             self.grid.add_obj(obj=block, name=block.name)
 
         # Create Player
-        self.player = Player(x=int(0.5*self.width), y=int(0.1*self.height), frame=self.frame, grid=self.grid, debug=False)
+        self.player = Player(x=int(0.5*self.width), y=int(0.3*self.height), frame=self.frame, grid=self.grid, debug=False)
         self.player_coord_label = Label(
             text=self.grid.get_coords_str(obj_name=self.player.name),
             font_name='Times New Roman',

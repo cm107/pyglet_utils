@@ -7,9 +7,6 @@ from .game_obj import GameObject
 class PlatformBlock(GameObject):
     def __init__(self, x: int, y: int, img: AbstractImage, frame: Frame, batch: Batch=None, name: str='PlatformBlock1'):
         super().__init__(x=x, y=y, img=img, frame=frame, name=name, batch=batch, usage='dynamic')
-        self.batch = batch
-        self.frame = frame
-        self.name = name
 
 class Platform:
     def __init__(self, pos_list: List[Tuple[int]], img_list: List[AbstractImage], frame: Frame, batch: Batch=None, name: str='Platform1'):

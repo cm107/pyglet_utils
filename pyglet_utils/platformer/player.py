@@ -1,10 +1,10 @@
 from typing import List, cast
 
 from .resources import PlayerImages
+from .game_obj import GameObject
 from .frame import Frame
 from .grid import Grid, GridObject
 from ..lib.exception_handler import Error
-from pyglet.sprite import Sprite
 from pyglet.graphics import Batch
 from pyglet.shapes import Circle, Rectangle
 
@@ -33,17 +33,19 @@ class ArrowKeyBuffer:
     def is_released(self) -> bool:
         return len(self.buffer) == 0
 
-class Player:
+class Player(GameObject):
     def __init__(self, x: int, y: int, frame: Frame, grid: Grid, name: str='Player1', batch: Batch=None, debug: bool=False):
-        self.name = name
-        self._x, self._y = x, y
-        self._camera_x, self._camera_y = x - frame.x, y - frame.y
-
         # Player Sprite Select Related
         self.player_res_list = [PlayerImages.p1, PlayerImages.p2, PlayerImages.p3]
         self.player_select = 0
         self.player_res = self.player_res_list[self.player_select]
-        self.sprite = Sprite(img=self.player_res.jump_right, x=self._camera_x, y=self._camera_y, batch=batch)
+
+        # Initialize Base Class
+        super().__init__(
+            x=x, y=y, img=self.player_res.jump_right, frame=frame, name=name,
+            batch=batch, usage='dynamic',
+            is_anchor_x_centered=True
+        )
 
         # Movement Related
         self.BASE_WALKING_SPEED = 200
@@ -53,10 +55,6 @@ class Player:
         self.facing = 'right'
         self.status = 'jumping'
         self.arrow_key_buffer = ArrowKeyBuffer()
-
-        # Frame Related
-        self.frame = frame
-        self.frame.add_obj(obj=self, name=name, is_anchor_x_centered=True)
 
         # Grid Related
         self.grid = grid
@@ -95,54 +93,6 @@ class Player:
         if self.debug:
             self.ref_point.y = self._camera_y
             self.ref_rect.y = self._camera_y
-
-    def set_x(self, x: int, fix_camera: bool=False):
-        if fix_camera:
-            dx = x - self._x
-            self.frame.x = self.frame.x + dx
-        else:
-            self._camera_x = x - self.frame.x
-        self._x = x
-
-    @property
-    def x(self) -> int:
-        return self._x
-    
-    @x.setter
-    def x(self, x: int):
-       self.set_x(x=x, fix_camera=False)
-
-    def set_y(self, y: int, fix_camera: bool=False):
-        if fix_camera:
-            dy = y - self._y
-            self.frame.y = self.frame.y + dy
-        else:
-            self._camera_y = y - self.frame.y
-        self._y = y
-
-    @property
-    def y(self) -> int:
-        return self._y
-    
-    @y.setter
-    def y(self, y: int):
-        self.set_y(y=y, fix_camera=False)
-
-    @property
-    def width(self) -> int:
-        return self.sprite.width
-    
-    @property
-    def height(self) -> int:
-        return self.sprite.height
-
-    @property
-    def position(self) -> (int, int):
-        return (self.x, self.y)
-
-    @property
-    def shape(self) -> (int, int):
-        return (self.width, self.height)
 
     def change_player(self, idx: int):
         self.player_res = self.player_res_list[idx]
@@ -247,40 +197,7 @@ class Player:
         if self.debug:
             self.ref_point.draw()
             self.ref_rect.draw()
-        self.sprite.draw()
-
-
-    @property
-    def x_left(self) -> int:
-        return self.x - self.width//2
-
-    @x_left.setter
-    def x_left(self, x_left: int):
-        self.x = x_left - self.width//2
-
-    @property
-    def x_right(self) -> int:
-        return self.x + self.width//2
-
-    @x_right.setter
-    def x_right(self, x_right: int):
-        self.x = x_right - self.width//2
-
-    @property
-    def y_bottom(self) -> int:
-        return self.y
-
-    @y_bottom.setter
-    def y_bottom(self, y_bottom: int):
-        self.y = y_bottom
-
-    @property
-    def y_top(self) -> int:
-        return self.y + self.height
-
-    @y_top.setter
-    def y_top(self, y_top: int):
-        self.y = y_top - self.height
+        super().draw()
 
     def move(self, dx: int, dy: int):
         player_grid_obj = self.grid.contained_obj_list.get_obj_from_name(self.name)

@@ -1,6 +1,7 @@
 from pyglet.window import Window
 from common_utils.base.basic import BasicObject, BasicHandler
 from typing import Any, List
+from ..lib.exception_handler import Error
 
 class FrameObject(BasicObject['FrameObject']):
     def __init__(
@@ -17,6 +18,14 @@ class FrameObject(BasicObject['FrameObject']):
         self.name = name
         self._is_anchor_x_centered = is_anchor_x_centered
     
+    @property
+    def is_anchor_x_centered(self) -> bool:
+        return self._is_anchor_x_centered
+    
+    @is_anchor_x_centered.setter
+    def is_anchor_x_centered(self, is_anchor_x_centered: bool):
+        self._is_anchor_x_centered = is_anchor_x_centered
+
     @property
     def x(self) -> int:
         if not self._is_anchor_x_centered:
@@ -84,6 +93,16 @@ class FrameObjectList(BasicHandler['FrameObjectList', 'FrameObject']):
         super().__init__(obj_type=FrameObject, obj_list=frame_obj_list)
         self.frame_obj_list = self.obj_list
     
+    def is_in_list(self, name: str) -> bool:
+        name_list = [obj.name for obj in self]
+        return name in name_list
+
+    def get_obj(self, name: str) -> FrameObject:
+        for obj in self:
+            if obj.name == name:
+                return obj
+        raise Error(f"Couldn't find FrameObject by the name of '{name}'.")
+
     def get_all_obj_in_frame(self, frame_x: int, frame_y: int, window: Window) -> List[FrameObject]:
         return [obj for obj in self if obj.is_in_frame(frame_x=frame_x, frame_y=frame_y, window=window)]
     
@@ -131,13 +150,19 @@ class Frame:
         self.y += dy
     
     def add_obj(self, obj: Any, name: str, is_anchor_x_centered: bool=False):
-        self.contained_obj_list.append(
-            FrameObject(
-                obj=obj,
-                name=name,
-                is_anchor_x_centered=is_anchor_x_centered
+        if not self.contained_obj_list.is_in_list(name):
+            self.contained_obj_list.append(
+                FrameObject(
+                    obj=obj,
+                    name=name,
+                    is_anchor_x_centered=is_anchor_x_centered
+                )
             )
-        )
+        else:
+            raise Error(f"FrameObject by the name of '{name}' already exists in Frame's FrameObjectList.'")
+
+    def get_obj(self, name: str) -> FrameObject:
+        return self.contained_obj_list.get_obj(name=name)
 
     def get_all_obj(self, exclude_names: List[str]=None) -> List[FrameObject]:
         if exclude_names:
