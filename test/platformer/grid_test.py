@@ -1,6 +1,6 @@
 import pyglet
 from pyglet.window import Window, FPSDisplay
-from pyglet_utils.platformer.shapes import Rectangle, RectangleGrid, LineGrid
+from pyglet_utils.lib.shapes import Rectangle, RectangleGrid, LineGrid
 
 # Create and open a window
 window = Window(width=550, height=500, caption='Grid Drawing Test')

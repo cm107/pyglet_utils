@@ -1,4 +1,4 @@
-from .shapes import LineGrid, Rectangle
+from ..lib.shapes import LineGrid, Rectangle
 from .frame import Frame
 from typing import Any, List, Tuple
 from common_utils.base.basic import BasicObject, BasicHandler

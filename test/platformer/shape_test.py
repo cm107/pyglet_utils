@@ -1,6 +1,6 @@
 import pyglet
 from pyglet.window import Window, FPSDisplay
-from pyglet_utils.platformer.shapes import GL_Point2D, GL_Points2D, GL_TriangleStrip2D, GL_Quads2D, Rectangle
+from pyglet_utils.lib.shapes import GL_Point2D, GL_Points2D, GL_TriangleStrip2D, GL_Quads2D, Rectangle
 
 # Create and open a window
 window = Window(width=500, height=500, caption='Shape Drawing Test')

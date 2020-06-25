@@ -274,7 +274,7 @@ class Rectangle:
             (f'c4B/{self.usage}', tuple((list(self.color) + [self.transparency])*4))
         )
 
-    def __update_vertices(self):
+    def update_vertices(self):
         self.vertex_list.vertices = [
             self.x, self.y,
             self.x, self.y + self.height,
@@ -282,27 +282,27 @@ class Rectangle:
             self.x + self.width, self.y + self.height
         ]
     
-    def __update_colors(self):
+    def update_colors(self):
         self.vertex_list.colors = tuple(list(self.color)*4)
 
     def move(self, dx: int=0, dy: int=0):
         self.x += dx
         self.y += dy
-        self.__update_vertices()
+        self.update_vertices()
 
     def scale(self, scale_x: float=1.0, scale_y: float=1.0):
         self.width = int(self.width*scale_x)
         self.height = int(self.height*scale_y)
-        self.__update_vertices()
+        self.update_vertices()
 
     def grow(self, dw: int=0, dh: int=0):
         self.width += dw
         self.height += dh
-        self.__update_vertices()
+        self.update_vertices()
     
     def change_color(self, color: Tuple[int]):
         self.color = color
-        self.__update_colors()
+        self.update_colors()
 
     def draw(self):
         self.vertex_list.draw(gl.GL_TRIANGLES)
