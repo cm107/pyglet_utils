@@ -12,8 +12,10 @@ class PanelObject:
 
         assert hasattr(obj, 'x')
         assert hasattr(obj, 'y')
+        assert hasattr(obj, 'position')
         assert hasattr(obj, 'width')
         assert hasattr(obj, 'height')
+        assert hasattr(obj, 'shape')
         assert hasattr(obj, 'draw')
         self.obj = obj
         self._orig_relative_x, self._orig_relative_y = self.relative_x, self.relative_y
@@ -21,6 +23,9 @@ class PanelObject:
         self._orig_aspect_ratio = self.aspect_ratio
 
         self.scale_with_parent = scale_with_parent
+
+        # TODO: Add parameter for preserve_aspect_ratio
+        # TODO: Add parameter for preserve_centered
 
     @classmethod
     def from_relative_obj(self, obj: Any, parent, scale_with_parent: bool=False) -> PanelObject:
@@ -55,7 +60,7 @@ class PanelObject:
     
     @position.setter
     def position(self, position: (int, int)):
-        (self.x, self.y) = position
+        (self.obj.x, self.obj.y) = position
 
     @property
     def relative_x(self) -> int:
@@ -96,6 +101,14 @@ class PanelObject:
     @height.setter
     def height(self, height: int):
         self.obj.height = height
+
+    @property
+    def shape(self) -> (int, int):
+        return self.obj.shape
+    
+    @shape.setter
+    def shape(self, shape: (int, int)):
+        self.obj.shape = shape
 
     @property
     def aspect_ratio(self) -> float:

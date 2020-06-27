@@ -212,15 +212,6 @@ class VideoPlayerWindow(Window):
                 target_y = self.bottom_panel.height
                 target_x = int(0.5*(width - target_width))
                 self.video_panel.frame.position = (target_x, target_y)
-        # if self.target_width >= self.target_height:
-        #     target_width = width
-        #     target_height = int(self.target_height*(target_width/self.target_width))
-        #     self.target_width, self.target_height = target_width, target_height
-        # else:
-        #     target_height = height - self.bottom_panel_height
-        #     target_width = int(self.target_width*(target_height/self.target_height))
-        #     self.left_offset = (width-target_width)//2
-        #     self.target_width, self.target_height = target_width, target_height
 
     def update_frame(self, dt):
         if not self.paused:
