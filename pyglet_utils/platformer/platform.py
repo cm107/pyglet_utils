@@ -20,6 +20,7 @@ class Platform:
         ]
         cast(List[PlatformBlock], self.blocks)
         self.frame = frame
+        self.name = name
 
     @property
     def x(self) -> int:
@@ -44,6 +45,58 @@ class Platform:
     @property
     def position(self) -> (int, int):
         return (self.x, self.y)
+
+    @property
+    def x_left(self) -> int:
+        return min([block.x_left for block in self.blocks])
+
+    @x_left.setter
+    def x_left(self, x_left: int):
+        dx = x_left - self.x_left
+        for block in self.blocks:
+            block.x += dx
+
+    @property
+    def x_right(self) -> int:
+        return max([block.x_right for block in self.blocks])
+
+    @x_right.setter
+    def x_right(self, x_right: int):
+        dx = x_right - self.x_right
+        for block in self.blocks:
+            block.x += dx
+
+    @property
+    def y_bottom(self) -> int:
+        return min([block.y_bottom for block in self.blocks])
+
+    @y_bottom.setter
+    def y_bottom(self, y_bottom: int):
+        dy = y_bottom - self.y_bottom
+        for block in self.blocks:
+            block.y += dy
+
+    @property
+    def y_top(self) -> int:
+        return max([block.y_top for block in self.blocks])
+
+    @y_top.setter
+    def y_top(self, y_top: int):
+        dy = y_top - self.y_top
+        for block in self.blocks:
+            block.y += dy
+
+    @property
+    def width(self) -> int:
+        return self.x_right - self.x_left
+    
+    @property
+    def height(self) -> int:
+        return self.y_top - self.y_bottom
+
+    @property
+    def shape(self) -> (int, int):
+        return (self.width, self.height)
 
     def draw(self):
         self.batch.draw()

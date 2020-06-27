@@ -10,6 +10,7 @@ from pyglet_utils.platformer.player import Player
 from pyglet_utils.platformer.grid import Grid
 from pyglet_utils.platformer.frame import Frame
 from pyglet_utils.platformer.platform import Platform
+from pyglet_utils.platformer.render import RenderBox
 
 # TODO: Create RenderBox as a member of GameWindow. RenderBox should be just slightly larger than Frame.
 # TODO: Create a rendering engine that decides which batches to render based on whether members of
@@ -25,6 +26,9 @@ class GameWindow(Window):
 
         self.fps_display = FPSDisplay(self)
         self.frame = Frame(window=self)
+
+        # Create Render Box
+        self.renderbox = RenderBox(frame=self.frame, render_distance_proportion=1.2)
 
         self.grid = Grid(
             grid_width=self.width, grid_height=self.height,
@@ -43,12 +47,12 @@ class GameWindow(Window):
         n_ground = int(self.width / dirt_tile_w)
 
         ground_pos_list = [(i*dirt_tile_w, 0) for i in range(n_ground)] + \
-            [(2*dirt_tile_w, i*dirt_tile_h) for i in range(1,3)] + \
+            [(2*dirt_tile_w, i*dirt_tile_h) for i in range(1,2)] + \
             [(6*dirt_tile_w, i*dirt_tile_h) for i in range(1,2)]
         self.platform = Platform(pos_list=ground_pos_list, img_list=[dirt_img], batch=Batch(), frame=self.frame, name='Platform1')
-
         for block in self.platform.blocks:
             self.grid.add_obj(obj=block, name=block.name)
+        self.renderbox.add_render_obj(self.platform)
 
         # Create Player
         self.player = Player(x=int(0.5*self.width), y=int(0.3*self.height), frame=self.frame, grid=self.grid, debug=False)
@@ -59,6 +63,7 @@ class GameWindow(Window):
             x=int(0.50*self.width), y=int(0.02*self.height),
             color=tuple([0, 255, 0] + [255])
         )
+        self.renderbox.add_render_obj(self.player)
 
         # Pause Related
         self.paused = False
@@ -74,10 +79,15 @@ class GameWindow(Window):
     def toggle_pause(self):
         self.paused = not self.paused
 
+    def toggle_debug(self):
+        self.player.toggle_debug()
+        self.renderbox.toggle_debug()
+
     def on_draw(self):
         self.clear()
-        self.platform.draw()
-        self.player.draw()
+        # self.platform.draw()
+        # self.player.draw()
+        self.renderbox.draw_all_renderable_objects()
         self.grid.draw()
         self.fps_display.draw()
         self.player_coord_label.draw()
@@ -108,7 +118,7 @@ class GameWindow(Window):
             elif symbol == key.C:
                 self.grid.toggle_coord_labels_visible()
             elif symbol == key.D:
-                self.player.toggle_debug()
+                self.toggle_debug()
             elif symbol == key.P:
                 self.toggle_pause()
             elif symbol == key.ESCAPE:
@@ -123,7 +133,7 @@ class GameWindow(Window):
             elif symbol == key.C:
                 self.grid.toggle_coord_labels_visible()
             elif symbol == key.D:
-                self.player.toggle_debug()
+                self.toggle_debug()
 
     def on_key_release(self, symbol, modifiers):
         if not self.paused:
