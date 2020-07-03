@@ -12,18 +12,16 @@ from pyglet_utils.platformer.frame import Frame
 from pyglet_utils.platformer.platform import Platform
 from pyglet_utils.platformer.render import RenderBox
 
-# TODO: Create RenderBox as a member of GameWindow. RenderBox should be just slightly larger than Frame.
-# TODO: Create a rendering engine that decides which batches to render based on whether members of
-#       a given batch are inside of a RenderBox.
 # TODO: Implement interactive map maker (based on mouse input).
-#       Prerequisite: Rendering Engine
 # TODO: Implement map save/load.
 #       Prerequisite: Map maker
+# TODO: Make it so that the position of objects only need to be calculated when
+#       they are inside of the RenderBox.
 
 class GameWindow(Window):
     def __init__(self, width: int, height: int, caption: str):
         super().__init__(width=width, height=height, caption=caption)
-
+        self.set_mouse_visible(True)
         self.fps_display = FPSDisplay(self)
         self.frame = Frame(window=self)
 
@@ -46,10 +44,14 @@ class GameWindow(Window):
         dirt_tile_w, dirt_tile_h = dirt_img.width, dirt_img.height
         n_ground = int(self.width / dirt_tile_w)
 
-        ground_pos_list = [(i*dirt_tile_w, 0) for i in range(n_ground)] + \
-            [(2*dirt_tile_w, i*dirt_tile_h) for i in range(1,2)] + \
-            [(6*dirt_tile_w, i*dirt_tile_h) for i in range(1,2)]
-        self.platform = Platform(pos_list=ground_pos_list, img_list=[dirt_img], batch=Batch(), frame=self.frame, name='Platform1')
+        # ground_pos_list = [(i*dirt_tile_w, 0) for i in range(n_ground)] + \
+        #     [(2*dirt_tile_w, i*dirt_tile_h) for i in range(1,2)] + \
+        #     [(6*dirt_tile_w, i*dirt_tile_h) for i in range(1,2)]
+        ground_grid_pos_list = [
+            (-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (2, -1), (3, -1), (3, 0), (4, -1), (5, -1), (5, 0), (6, -1), (7, -1), (7, 0), (8, -1)
+        ]
+        # self.platform = Platform.from_pos_list(pos_list=ground_pos_list, img_list=[dirt_img], batch=Batch(), frame=self.frame, name='Platform1')
+        self.platform = Platform.from_grid_space_coords(grid_pos_list=ground_grid_pos_list, grid=self.grid, img_list=[dirt_img], batch=Batch(), frame=self.frame, name='Platform1')
         for block in self.platform.blocks:
             self.grid.add_obj(obj=block, name=block.name)
         self.renderbox.add_render_obj(self.platform)
@@ -82,6 +84,10 @@ class GameWindow(Window):
     def toggle_debug(self):
         self.player.toggle_debug()
         self.renderbox.toggle_debug()
+
+    def on_mouse_motion(self, x, y, dx, dy):
+        space_x, space_y = self.grid.camera_coord_to_grid_space(camera_x=x, camera_y=y, frame=self.frame)
+        print(f'(x, y): ({x}, {y}), (dx, dy): ({dx}, {dy}), (space_x, space_y): ({space_x}, {space_y})')
 
     def on_draw(self):
         self.clear()

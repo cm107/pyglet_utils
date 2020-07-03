@@ -99,44 +99,53 @@ class GridObject(BasicObject['GridObject']):
     def y_top(self) -> int:
         return self.obj.y_top
     
+    def world_coord_to_grid_space(self, x: int, y: int) -> (int, int):
+        space_x = floor((x - self._grid_origin_x) / self._tile_width)
+        space_y = floor((y - self._grid_origin_y) / self._tile_height)
+        return (space_x, space_y)
+
     @y_top.setter
     def y_top(self, y_top: int):
         self.obj.y_top = y_top
 
-    def get_bottom_left_space(self, dx: int=0, dy: int=0) -> Tuple[int]:
-        space_x = floor((self.x - self._grid_origin_x + dx) / self._tile_width)
-        space_y = floor((self.y - self._grid_origin_y + dy) / self._tile_height)
-        return (space_x, space_y)
+    def get_bottom_left_space(self, dx: int=0, dy: int=0) -> (int, int):
+        return self.world_coord_to_grid_space(
+            x=self.x+dx,
+            y=self.y+dy
+        )
 
     @property
-    def bottom_left_space(self) -> Tuple[int]:
+    def bottom_left_space(self) -> (int, int):
         return self.get_bottom_left_space()
 
-    def get_bottom_right_space(self, dx: int=0, dy: int=0) -> Tuple[int]:
-        space_x = floor(((self.x - self._grid_origin_x + dx) + self.width - 1) / self._tile_width)
-        space_y = floor((self.y - self._grid_origin_y + dy) / self._tile_height)
-        return (space_x, space_y)
+    def get_bottom_right_space(self, dx: int=0, dy: int=0) -> (int, int):
+        return self.world_coord_to_grid_space(
+            x=self.x+dx+self.width-1,
+            y=self.y+dy
+        )
 
     @property
-    def bottom_right_space(self) -> Tuple[int]:
+    def bottom_right_space(self) -> (int, int):
         return self.get_bottom_right_space()
 
-    def get_top_left_space(self, dx: int=0, dy: int=0) -> Tuple[int]:
-        space_x = floor((self.x - self._grid_origin_x + dx) / self._tile_width)
-        space_y = floor(((self.y - self._grid_origin_y + dy) + self.height - 1) / self._tile_height)
-        return (space_x, space_y)
+    def get_top_left_space(self, dx: int=0, dy: int=0) -> (int, int):
+        return self.world_coord_to_grid_space(
+            x=self.x+dx,
+            y=self.y+dy+self.height-1
+        )
 
     @property
-    def top_left_space(self) -> Tuple[int]:
+    def top_left_space(self) -> (int, int):
         return self.get_top_left_space()
 
-    def get_top_right_space(self, dx: int=0, dy: int=0) -> Tuple[int]:
-        space_x = floor(((self.x - self._grid_origin_x + dx) + self.width - 1) / self._tile_width)
-        space_y = floor(((self.y - self._grid_origin_y + dy) + self.height - 1) / self._tile_height)
-        return (space_x, space_y)
+    def get_top_right_space(self, dx: int=0, dy: int=0) -> (int, int):
+        return self.world_coord_to_grid_space(
+            x=self.x+dx+self.width-1,
+            y=self.y+dy+self.height-1
+        )
     
     @property
-    def top_right_space(self) -> Tuple[int]:
+    def top_right_space(self) -> (int, int):
         return self.get_top_right_space()
 
     def get_occupied_spaces(self, dx: int=0, dy: int=0) -> List[Tuple[int]]:
@@ -378,3 +387,14 @@ class Grid:
     def reset_contacts(self):
         for grid_obj in self.contained_obj_list:
             grid_obj.is_in_contact = False
+
+    def world_coord_to_grid_space(self, x: int, y: int) -> (int, int):
+        space_x = floor((x - self._grid_origin_x) / self._tile_width)
+        space_y = floor((y - self._grid_origin_y) / self._tile_height)
+        return (space_x, space_y)
+    
+    def camera_coord_to_grid_space(self, camera_x: int, camera_y: int, frame: Frame) -> (int, int):
+        return self.world_coord_to_grid_space(
+            x=frame.x+camera_x,
+            y=frame.y+camera_y
+        )

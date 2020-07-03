@@ -94,7 +94,7 @@ class BoundingBox:
 class RenderBox:
     def __init__(
         self, frame: Frame, render_distance_proportion: float=1.2, render_objs: List[RenderObject]=None,
-        debug: bool=False, debug_color: Tuple[int]=(0, 255, 0), debug_transparency: int=100
+        debug: bool=False, debug_color: Tuple[int]=(0, 255, 0), debug_transparency: int=50
     ):
         self.frame = frame
         self._render_distance_proportion = render_distance_proportion

@@ -1,26 +1,60 @@
+from __future__ import annotations
 from typing import List, Tuple, cast
 from pyglet.image import AbstractImage
 from pyglet.graphics import Batch
 from .frame import Frame
 from .game_obj import GameObject
+from .grid import Grid
 
 class PlatformBlock(GameObject):
     def __init__(self, x: int, y: int, img: AbstractImage, frame: Frame, batch: Batch=None, name: str='PlatformBlock1'):
         super().__init__(x=x, y=y, img=img, frame=frame, name=name, batch=batch, usage='dynamic')
 
+    @classmethod
+    def from_grid_space_coord(
+        cls, grid_space_x: int, grid_space_y: int, grid: Grid, img: AbstractImage, frame: Frame, batch: Batch=None, name: str='PlatformBlock1'
+    ) -> PlatformBlock:
+        return PlatformBlock(
+            x=grid_space_x*grid.tile_width, y=grid_space_y*grid.tile_height,
+            img=img, frame=frame, batch=batch, name=name
+        )
+
 class Platform:
-    def __init__(self, pos_list: List[Tuple[int]], img_list: List[AbstractImage], frame: Frame, batch: Batch=None, name: str='Platform1'):
+    def __init__(self, frame: Frame, blocks: List[PlatformBlock]=None, batch: Batch=None, name: str='Platform1'):
         self.batch = batch if batch is not None else Batch()
-        self.blocks = [
+        self.blocks = blocks if blocks is not None else []
+        self.frame = frame
+        self.name = name
+
+    @classmethod
+    def from_pos_list(
+        cls, pos_list: List[Tuple[int]], img_list: List[AbstractImage], frame: Frame, batch: Batch=None, name: str='Platform1'
+    ) -> Platform:
+        blocks = [
             PlatformBlock(
                 x=x, y=y, img=img_list[i % len(img_list)],
-                frame=frame, batch=self.batch,
+                frame=frame, batch=batch,
                 name=f'{name}_Block{i}'
             ) for i, (x, y) in enumerate(pos_list)
         ]
-        cast(List[PlatformBlock], self.blocks)
-        self.frame = frame
-        self.name = name
+        return Platform(
+            frame=frame, blocks=blocks, batch=batch, name=name
+        )
+
+    @classmethod
+    def from_grid_space_coords(
+        cls, grid_pos_list: List[Tuple[int]], grid: Grid, img_list: List[AbstractImage], frame: Frame, batch: Batch=None, name: str='Platform1'
+    ) -> Platform:
+        blocks = [
+            PlatformBlock.from_grid_space_coord(
+                grid_space_x=grid_space_x, grid_space_y=grid_space_y, grid=grid, img=img_list[i % len(img_list)],
+                frame=frame, batch=batch,
+                name=f'{name}_Block{i}'
+            ) for i, (grid_space_x, grid_space_y) in enumerate(grid_pos_list)
+        ]
+        return Platform(
+            frame=frame, blocks=blocks, batch=batch, name=name
+        )
 
     @property
     def x(self) -> int:
