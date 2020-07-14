@@ -10,7 +10,8 @@ class GridObject(BasicObject['GridObject']):
     def __init__(
         self, obj: Any, name: str, grid_width: int, grid_height: int, tile_width: int, tile_height: int,
         grid_origin_x: int=0, grid_origin_y: int=0,
-        is_anchor_x_centered: bool=False
+        is_anchor_x_centered: bool=False,
+        parent_name: str=None
     ):
         super().__init__()
         assert hasattr(obj, 'x')
@@ -29,6 +30,7 @@ class GridObject(BasicObject['GridObject']):
         self._tile_height = tile_height
         self._grid_origin_x, self._grid_origin_y = grid_origin_x, grid_origin_y
         self._is_anchor_x_centered = is_anchor_x_centered
+        self.parent_name = parent_name
 
         # Contact Related
         self.is_in_contact = False
@@ -198,17 +200,25 @@ class GridObjectList(BasicHandler['GridObjectList', 'GridObject']):
                 return obj
         raise Exception(f"Couldn't find grid object of name {name}")
 
-    def get_objects(self, exclude_names: List[str]=None) -> List[GridObject]:
-        if exclude_names is not None:
-            return [grid_obj for grid_obj in self if grid_obj.name not in exclude_names]
-        else:
-            return self.obj_list
+    def get_objects(self, exclude_names: List[str]=None, include_names: List[str]=None) -> List[GridObject]:
+        result = []
+        for obj in self:
+            name_is_included = include_names is None or obj.name in include_names
+            parent_name_is_included = include_names is None or (obj.parent_name is not None and obj.parent_name in include_names)
+            if name_is_included or parent_name_is_included:
+                name_is_excluded = exclude_names is not None and obj.name in exclude_names
+                parent_name_is_excluded = exclude_names is not None and (obj.parent_name is not None and obj.parent_name in exclude_names)
+                if not (name_is_excluded or parent_name_is_excluded):
+                    result.append(obj)
+        return result
 
-    def get_occupied_spaces(self, exclude_names: List[str]=None) -> List[Tuple[int]]:
+
+    def get_occupied_spaces(self, exclude_names: List[str]=None, include_names: List[str]=None) -> List[Tuple[int]]:
         spaces = []
         for obj in self:
-            if not exclude_names or obj.name not in exclude_names:
-                spaces.extend(obj.occupied_spaces)
+            if not include_names or obj.name in include_names:
+                if not exclude_names or obj.name not in exclude_names:
+                    spaces.extend(obj.occupied_spaces)
         return spaces
 
     @property
@@ -370,14 +380,15 @@ class Grid:
         coord_str = f'{obj_name}: ({xmin}:{xmax}, {ymin}:{ymax})'
         return coord_str
     
-    def add_obj(self, obj: Any, name: str, is_anchor_x_centered: bool=False):
+    def add_obj(self, obj: Any, name: str, is_anchor_x_centered: bool=False, parent_name: str=None):
         obj_id = id if id is not None else len(self.contained_obj_list)
         grid_obj = GridObject(
             obj=obj, name=name,
             grid_width=self.grid_width, grid_height=self.grid_height,
             tile_width=self.tile_width, tile_height=self.tile_height,
             grid_origin_x=self.grid_origin_x, grid_origin_y=self.grid_origin_y,
-            is_anchor_x_centered=is_anchor_x_centered
+            is_anchor_x_centered=is_anchor_x_centered,
+            parent_name=parent_name
         )
         self.contained_obj_list.append(grid_obj)
     

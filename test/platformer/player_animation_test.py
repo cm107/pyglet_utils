@@ -41,8 +41,8 @@ class GameWindow(Window):
 
         # Create Ground
         dirt_img = TileImages.dirtRight
-        dirt_tile_w, dirt_tile_h = dirt_img.width, dirt_img.height
-        n_ground = int(self.width / dirt_tile_w)
+        # dirt_tile_w, dirt_tile_h = dirt_img.width, dirt_img.height
+        # n_ground = int(self.width / dirt_tile_w)
 
         # ground_pos_list = [(i*dirt_tile_w, 0) for i in range(n_ground)] + \
         #     [(2*dirt_tile_w, i*dirt_tile_h) for i in range(1,2)] + \
@@ -53,11 +53,11 @@ class GameWindow(Window):
         # self.platform = Platform.from_pos_list(pos_list=ground_pos_list, img_list=[dirt_img], batch=Batch(), frame=self.frame, name='Platform1')
         self.platform = Platform.from_grid_space_coords(grid_pos_list=ground_grid_pos_list, grid=self.grid, img_list=[dirt_img], batch=Batch(), frame=self.frame, name='Platform1')
         for block in self.platform.blocks:
-            self.grid.add_obj(obj=block, name=block.name)
+            self.grid.add_obj(obj=block, name=block.name, parent_name=self.platform.name)
         self.renderbox.add_render_obj(self.platform)
 
         # Create Player
-        self.player = Player(x=int(0.5*self.width), y=int(0.3*self.height), frame=self.frame, grid=self.grid, debug=False)
+        self.player = Player(x=int(0.5*self.width), y=int(0.3*self.height), frame=self.frame, renderbox=self.renderbox, grid=self.grid, debug=False)
         self.player_coord_label = Label(
             text=self.grid.get_coords_str(obj_name=self.player.name),
             font_name='Times New Roman',
@@ -65,7 +65,6 @@ class GameWindow(Window):
             x=int(0.50*self.width), y=int(0.02*self.height),
             color=tuple([0, 255, 0] + [255])
         )
-        self.renderbox.add_render_obj(self.player)
 
         # Pause Related
         self.paused = False

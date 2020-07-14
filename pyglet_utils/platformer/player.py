@@ -3,6 +3,7 @@ from typing import List, cast
 from .resources import PlayerImages
 from .game_obj import GameObject
 from .frame import Frame
+from .render import RenderBox
 from .grid import Grid, GridObject
 from ..lib.exception_handler import Error
 from pyglet.graphics import Batch
@@ -34,7 +35,7 @@ class ArrowKeyBuffer:
         return len(self.buffer) == 0
 
 class Player(GameObject):
-    def __init__(self, x: int, y: int, frame: Frame, grid: Grid, name: str='Player1', batch: Batch=None, debug: bool=False):
+    def __init__(self, x: int, y: int, frame: Frame, renderbox: RenderBox, grid: Grid, name: str='Player1', batch: Batch=None, debug: bool=False):
         # Player Sprite Select Related
         self.player_res_list = [PlayerImages.p1, PlayerImages.p2, PlayerImages.p3]
         self.player_select = 0
@@ -55,6 +56,10 @@ class Player(GameObject):
         self.facing = 'right'
         self.status = 'jumping'
         self.arrow_key_buffer = ArrowKeyBuffer()
+
+        # Render Related
+        self.renderbox = renderbox
+        self.renderbox.add_render_obj(self)
 
         # Grid Related
         self.grid = grid
@@ -199,9 +204,13 @@ class Player(GameObject):
             self.ref_rect.draw()
         super().draw()
 
-    def move(self, dx: int, dy: int):
+    def move(self, dx: int, dy: int): # TODO: Insert renderbox logic here
         player_grid_obj = self.grid.contained_obj_list.get_obj_from_name(self.name)
-        other_grid_objects = self.grid.contained_obj_list.get_objects(exclude_names=[self.name])
+        other_renderable_objects = self.renderbox.get_all_renderable_objects(exclude_names=[self.name])
+        other_renderable_names = [other_renderable_object.name for other_renderable_object in other_renderable_objects]
+        other_grid_objects = self.grid.contained_obj_list.get_objects(include_names=other_renderable_names)
+        all_grid_objects = self.grid.contained_obj_list.get_objects()
+
         self.up_contact_obj_list = []
         self.down_contact_obj_list = []
         self.left_contact_obj_list = []

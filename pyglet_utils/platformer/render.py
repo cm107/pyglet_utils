@@ -200,7 +200,7 @@ class RenderBox:
         bbox = self._get_bbox()
         for obj in self.render_objs:
             if exclude_names is not None and obj.name in exclude_names:
-                pass
+                continue
             if bbox.contains(obj, fully=fully_contained_only):
                 result.append(obj)
         return result
