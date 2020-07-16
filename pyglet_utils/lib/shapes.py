@@ -289,6 +289,13 @@ class Rectangle:
         self.x += dx
         self.y += dy
         self.update_vertices()
+    
+    def move_to(self, x: int=None, y: int=None):
+        if x is not None:
+            self.x = x
+        if y is not None:
+            self.y = y
+        self.update_vertices()
 
     def scale(self, scale_x: float=1.0, scale_y: float=1.0):
         self.width = int(self.width*scale_x)

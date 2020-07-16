@@ -11,6 +11,7 @@ from pyglet_utils.platformer.grid import Grid
 from pyglet_utils.platformer.frame import Frame
 from pyglet_utils.platformer.platform import Platform
 from pyglet_utils.platformer.render import RenderBox
+from pyglet_utils.platformer.mouse import Mouse
 
 # TODO: Implement interactive map maker (based on mouse input).
 # TODO: Implement map save/load.
@@ -70,6 +71,9 @@ class GameWindow(Window):
             anchor_x='center', anchor_y='top', bold=True
         )
 
+        # Mouse Related
+        self.mouse = Mouse(grid=self.grid, frame=self.frame)
+
     def toggle_pause(self):
         self.paused = not self.paused
 
@@ -77,13 +81,22 @@ class GameWindow(Window):
         self.player.toggle_debug()
         self.renderbox.toggle_debug()
 
+    def on_mouse_enter(self, x, y):
+        self.mouse.enter_window(x=x, y=y)
+        self.mouse.update_cursor_rect()
+
+    def on_mouse_leave(self, x, y):
+        self.mouse.leave_window()
+        self.mouse.update_cursor_rect()
+
     def on_mouse_motion(self, x, y, dx, dy):
-        space_x, space_y = self.grid.camera_coord_to_grid_space(camera_x=x, camera_y=y, frame=self.frame)
-        print(f'(x, y): ({x}, {y}), (dx, dy): ({dx}, {dy}), (space_x, space_y): ({space_x}, {space_y})')
+        self.mouse.move(x=x, y=y, dx=dx, dy=dy)
+        self.mouse.update_cursor_rect()
 
     def on_draw(self):
         self.clear()
         self.renderbox.draw_all_renderable_objects()
+        self.mouse.draw()
         self.grid.draw()
         self.fps_display.draw()
         self.player_coord_label.draw()
@@ -154,6 +167,7 @@ class GameWindow(Window):
             dx = self.player.vx * dt
             dy = self.player.vy * dt
             self.player.move(dx=dx, dy=dy)
+            self.mouse.update_cursor_rect()
             self.player_coord_label.text = self.grid.get_coords_str(obj_name=self.player.name)
 
     def run(self):
