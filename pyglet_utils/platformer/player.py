@@ -76,28 +76,26 @@ class Player(GameObject):
         self.ref_rect.anchor_x = self.ref_rect.width // 2
 
     @property
-    def camera_x(self) -> int:
-        return self._camera_x
-    
-    @camera_x.setter
-    def camera_x(self, camera_x: int):
-        self._camera_x = camera_x
-        self.sprite.x = self._camera_x
+    def x(self) -> int:
+        return super().x
+
+    @x.setter
+    def x(self, x: int):
+        super().x = x
         if self.debug:
-            self.ref_point.x = self._camera_x
-            self.ref_rect.x = self._camera_x
+            self.ref_point.x = self.camera_x
+            self.ref_rect.x = self.camera_x
 
     @property
-    def camera_y(self) -> int:
-        return self._camera_y
-    
-    @camera_y.setter
-    def camera_y(self, camera_y: int):
-        self._camera_y = camera_y
-        self.sprite.y = self._camera_y
+    def y(self) -> int:
+        return super().y
+
+    @y.setter
+    def y(self, y: int):
+        super().y = y
         if self.debug:
-            self.ref_point.y = self._camera_y
-            self.ref_rect.y = self._camera_y
+            self.ref_point.y = self.camera_y
+            self.ref_rect.y = self.camera_y
 
     def change_player(self, idx: int):
         self.player_res = self.player_res_list[idx]
@@ -204,7 +202,7 @@ class Player(GameObject):
             self.ref_rect.draw()
         super().draw()
 
-    def move(self, dx: int, dy: int): # TODO: Insert renderbox logic here
+    def move(self, dx: int, dy: int):
         player_grid_obj = self.grid.contained_obj_list.get_obj_from_name(self.name)
         other_renderable_objects = self.renderbox.get_all_renderable_objects(exclude_names=[self.name])
         other_renderable_names = [other_renderable_object.name for other_renderable_object in other_renderable_objects]
@@ -233,18 +231,15 @@ class Player(GameObject):
                     collision = True
         if not collision:
             self.set_x(x=self.x+dx, fix_camera=True)
-            self.frame.move_camera(dx=-dx, exclude_names=[self.name])
             self.grid.move(dx=-dx)
         else:
             if len(self.left_contact_obj_list) > 0:
                 dx_adjustment = self.left_contact_obj_list[0].x_right + 1 - self.x_left
                 self.set_x(x=self.x+dx_adjustment, fix_camera=True)
-                self.frame.move_camera(dx=-dx_adjustment, exclude_names=[self.name])
                 self.grid.move(dx=-dx_adjustment)
             elif len(self.right_contact_obj_list) > 0:
                 dx_adjustment = self.right_contact_obj_list[0].x_left - self.x_right
                 self.set_x(x=self.x+dx_adjustment, fix_camera=True)
-                self.frame.move_camera(dx=-dx_adjustment, exclude_names=[self.name])
                 self.grid.move(dx=-dx_adjustment)
             else:
                 raise Exception
@@ -265,7 +260,6 @@ class Player(GameObject):
                     collision = True
         if not collision:
             self.set_y(y=self.y+dy, fix_camera=True)
-            self.frame.move_camera(dy=-dy, exclude_names=[self.name])
             self.grid.move(dy=-dy)
             self.start_falling()
         else:
@@ -273,7 +267,6 @@ class Player(GameObject):
             if len(self.down_contact_obj_list) > 0:
                 dy_adjustment = self.down_contact_obj_list[0].y_top - self.y_bottom
                 self.set_y(y=self.y+dy_adjustment, fix_camera=True)
-                self.frame.move_camera(dy=-dy_adjustment, exclude_names=[self.name])
                 self.grid.move(dy=-dy_adjustment)
 
                 if self.is_jumping:
@@ -285,7 +278,6 @@ class Player(GameObject):
             elif len(self.up_contact_obj_list) > 0:
                 dy_adjustment = self.up_contact_obj_list[0].y_bottom - self.y_top
                 self.set_y(y=self.y+dy_adjustment, fix_camera=True)
-                self.frame.move_camera(dy=-dy_adjustment, exclude_names=[self.name])
                 self.grid.move(dy=-dy_adjustment)
             else:
                 raise Exception

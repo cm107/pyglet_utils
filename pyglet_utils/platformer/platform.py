@@ -132,5 +132,9 @@ class Platform:
     def shape(self) -> (int, int):
         return (self.width, self.height)
 
+    def update_sprite_position(self):
+        for block in self.blocks:
+            block.update_sprite_position()
+
     def draw(self):
         self.batch.draw()

@@ -69,6 +69,7 @@ class RenderObject:
         return self.batch is not None
 
     def draw(self):
+        self.obj.update_sprite_position()
         if self.is_batch:
             self.batch.draw()
         else:

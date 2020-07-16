@@ -84,10 +84,6 @@ class FrameObject(BasicObject['FrameObject']):
         self.x += dx
         self.y += dy
 
-    def move_camera(self, dx: int=0, dy: int=0):
-        self.camera_x += dx
-        self.camera_y += dy
-    
 class FrameObjectList(BasicHandler['FrameObjectList', 'FrameObject']):
     def __init__(self, frame_obj_list: List[FrameObject]=None):
         super().__init__(obj_type=FrameObject, obj_list=frame_obj_list)
@@ -172,8 +168,3 @@ class Frame:
 
     def get_all_obj_in_frame(self) -> List[FrameObject]:
         self.contained_obj_list.get_all_obj_in_frame(frame_x=self.x, frame_y=self.y, window=self.window)
-    
-    def move_camera(self, dx: int=0, dy: int=0, exclude_names: List[str]=None):
-        frame_objs = self.get_all_obj(exclude_names=exclude_names)
-        for frame_obj in frame_objs:
-            frame_obj.move_camera(dx=dx, dy=dy)

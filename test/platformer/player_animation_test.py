@@ -41,16 +41,9 @@ class GameWindow(Window):
 
         # Create Ground
         dirt_img = TileImages.dirtRight
-        # dirt_tile_w, dirt_tile_h = dirt_img.width, dirt_img.height
-        # n_ground = int(self.width / dirt_tile_w)
-
-        # ground_pos_list = [(i*dirt_tile_w, 0) for i in range(n_ground)] + \
-        #     [(2*dirt_tile_w, i*dirt_tile_h) for i in range(1,2)] + \
-        #     [(6*dirt_tile_w, i*dirt_tile_h) for i in range(1,2)]
         ground_grid_pos_list = [
             (-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (2, -1), (3, -1), (3, 0), (4, -1), (5, -1), (5, 0), (6, -1), (7, -1), (7, 0), (8, -1)
         ]
-        # self.platform = Platform.from_pos_list(pos_list=ground_pos_list, img_list=[dirt_img], batch=Batch(), frame=self.frame, name='Platform1')
         self.platform = Platform.from_grid_space_coords(grid_pos_list=ground_grid_pos_list, grid=self.grid, img_list=[dirt_img], batch=Batch(), frame=self.frame, name='Platform1')
         for block in self.platform.blocks:
             self.grid.add_obj(obj=block, name=block.name, parent_name=self.platform.name)
@@ -90,8 +83,6 @@ class GameWindow(Window):
 
     def on_draw(self):
         self.clear()
-        # self.platform.draw()
-        # self.player.draw()
         self.renderbox.draw_all_renderable_objects()
         self.grid.draw()
         self.fps_display.draw()

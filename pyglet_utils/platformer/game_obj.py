@@ -10,16 +10,15 @@ class GameObject:
         self, x: int, y: int, img: AbstractImage, frame: Frame, name: str, batch: Batch=None, usage: str='dynamic',
         is_anchor_x_centered: bool=False
     ):
+        self.frame = frame
         self._x, self._y = x, y
-        self._camera_x, self._camera_y = x - frame.x, y - frame.y
         if not isinstance(img, (AbstractImage, Animation)):
             logger.error(f'img must be an instance of AbstractImage or Animation')
             logger.error(f'type(img): {type(img)}')
             raise Exception
-        self.sprite = Sprite(img=img, x=self._camera_x, y=self._camera_y, batch=batch, usage=usage)
+        self.sprite = Sprite(img=img, x=self.camera_x, y=self.camera_y, batch=batch, usage=usage)
         self.name = name
         self.batch = batch
-        self.frame = frame
         self.frame.add_obj(self, name=name, is_anchor_x_centered=is_anchor_x_centered)
         self._is_anchor_x_centered = is_anchor_x_centered
 
@@ -35,29 +34,19 @@ class GameObject:
 
     @property
     def camera_x(self) -> int:
-        return self._camera_x
+        return self.x - self.frame.x
     
-    @camera_x.setter
-    def camera_x(self, camera_x: int):
-        self._camera_x = camera_x
-        self.sprite.x = self._camera_x
-
     @property
     def camera_y(self) -> int:
-        return self._camera_y
+        return self.y - self.frame.y
     
-    @camera_y.setter
-    def camera_y(self, camera_y: int):
-        self._camera_y = camera_y
-        self.sprite.y = self._camera_y
-
     def set_x(self, x: int, fix_camera: bool=False):
         if fix_camera:
             dx = x - self._x
             self.frame.x = self.frame.x + dx
-        else:
-            self._camera_x = x - self.frame.x
         self._x = x
+        self.sprite.x = self.camera_x
+
 
     @property
     def x(self) -> int:
@@ -71,9 +60,8 @@ class GameObject:
         if fix_camera:
             dy = y - self._y
             self.frame.y = self.frame.y + dy
-        else:
-            self._camera_y = y - self.frame.y
         self._y = y
+        self.sprite.y = self.camera_y
 
     @property
     def y(self) -> int:
@@ -147,5 +135,9 @@ class GameObject:
         self.x += dx
         self.y += dy
     
+    def update_sprite_position(self):
+        self.sprite.x = self.camera_x
+        self.sprite.y = self.camera_y
+
     def draw(self):
         self.sprite.draw()
