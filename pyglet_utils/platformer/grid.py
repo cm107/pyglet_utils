@@ -392,6 +392,12 @@ class Grid:
         )
         self.contained_obj_list.append(grid_obj)
     
+    def remove_obj(self, name: str):
+        for i in range(len(self.contained_obj_list)):
+            if self.contained_obj_list[i].name == name:
+                del self.contained_obj_list[i]
+                break
+
     def toggle_show_contacts(self):
         self.show_contacts = not self.show_contacts
     
@@ -404,8 +410,30 @@ class Grid:
         space_y = floor((y - self._grid_origin_y) / self._tile_height)
         return (space_x, space_y)
     
+    def grid_space_to_world_coord(self, space_x: int, space_y: int) -> (int, int):
+        x = space_x * self._tile_width + self._grid_origin_x
+        y = space_y * self._tile_height + self._grid_origin_y
+        return (x, y)
+
     def camera_coord_to_grid_space(self, camera_x: int, camera_y: int, frame: Frame) -> (int, int):
         return self.world_coord_to_grid_space(
             x=frame.x+camera_x,
             y=frame.y+camera_y
         )
+    
+    def grid_spaces_from_names(self, names: List[str]) -> List[List[Tuple[int]]]:
+        result = []
+        for grid_obj in self.contained_obj_list:
+            if grid_obj.name in names:
+                result.extend(grid_obj.occupied_spaces)
+        return result
+    
+    def grid_spaces_to_names(self, spaces: List[Tuple[int]]) -> List[str]:
+        names = []
+        for grid_obj in self.contained_obj_list:
+            grid_obj_spaces = grid_obj.occupied_spaces
+            for space in spaces:
+                if space in grid_obj_spaces:
+                    names.append(grid_obj.name)
+                    break
+        return names

@@ -157,6 +157,12 @@ class Frame:
         else:
             raise Error(f"FrameObject by the name of '{name}' already exists in Frame's FrameObjectList.'")
 
+    def remove_obj(self, name: str):
+        for i in range(len(self.contained_obj_list)):
+            if self.contained_obj_list[i].name == name:
+                del self.contained_obj_list[i]
+                break
+
     def get_obj(self, name: str) -> FrameObject:
         return self.contained_obj_list.get_obj(name=name)
 

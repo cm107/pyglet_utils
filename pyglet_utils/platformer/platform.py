@@ -7,12 +7,12 @@ from .game_obj import GameObject
 from .grid import Grid
 
 class PlatformBlock(GameObject):
-    def __init__(self, x: int, y: int, img: AbstractImage, frame: Frame, batch: Batch=None, name: str='PlatformBlock1'):
+    def __init__(self, x: int, y: int, img: AbstractImage, frame: Frame, batch: Batch=None, name: str='PlatformBlockSample'):
         super().__init__(x=x, y=y, img=img, frame=frame, name=name, batch=batch, usage='dynamic')
 
     @classmethod
     def from_grid_space_coord(
-        cls, grid_space_x: int, grid_space_y: int, grid: Grid, img: AbstractImage, frame: Frame, batch: Batch=None, name: str='PlatformBlock1'
+        cls, grid_space_x: int, grid_space_y: int, grid: Grid, img: AbstractImage, frame: Frame, batch: Batch=None, name: str='PlatformBlockSample'
     ) -> PlatformBlock:
         return PlatformBlock(
             x=grid_space_x*grid.tile_width, y=grid_space_y*grid.tile_height,
@@ -20,15 +20,23 @@ class PlatformBlock(GameObject):
         )
 
 class Platform:
-    def __init__(self, frame: Frame, blocks: List[PlatformBlock]=None, batch: Batch=None, name: str='Platform1'):
+    def __init__(self, frame: Frame, blocks: List[PlatformBlock]=None, batch: Batch=None, name: str='PlatformSample0'):
         self.batch = batch if batch is not None else Batch()
         self.blocks = blocks if blocks is not None else []
         self.frame = frame
         self.name = name
 
+    def soft_copy(self) -> Platform:
+        return Platform(
+            frame=self.frame,
+            blocks=self.blocks,
+            batch=self.batch,
+            name=self.name
+        )
+
     @classmethod
     def from_pos_list(
-        cls, pos_list: List[Tuple[int]], img_list: List[AbstractImage], frame: Frame, batch: Batch=None, name: str='Platform1'
+        cls, pos_list: List[Tuple[int]], img_list: List[AbstractImage], frame: Frame, batch: Batch=None, name: str='PlatformSample0'
     ) -> Platform:
         blocks = [
             PlatformBlock(
@@ -43,7 +51,7 @@ class Platform:
 
     @classmethod
     def from_grid_space_coords(
-        cls, grid_pos_list: List[Tuple[int]], grid: Grid, img_list: List[AbstractImage], frame: Frame, batch: Batch=None, name: str='Platform1'
+        cls, grid_pos_list: List[Tuple[int]], grid: Grid, img_list: List[AbstractImage], frame: Frame, batch: Batch=None, name: str='PlatformSample0'
     ) -> Platform:
         blocks = [
             PlatformBlock.from_grid_space_coord(
@@ -55,6 +63,22 @@ class Platform:
         return Platform(
             frame=frame, blocks=blocks, batch=batch, name=name
         )
+
+    def get_block_names(self) -> List[str]:
+        return [block.name for block in self.blocks]
+
+    def add_block(self, x: int, y: int, img: AbstractImage):
+        new_block = PlatformBlock(
+            x=x, y=y, img=img,
+            frame=self.frame, batch=self.batch,
+            name=f'{self.name}_Block{len(self.blocks)}'
+        )
+        self.blocks.append(new_block)
+    
+    def remove_block(self, name: str):
+        block_names = self.get_block_names()
+        idx = block_names.index(name)
+        del self.blocks[idx]
 
     @property
     def x(self) -> int:

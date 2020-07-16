@@ -193,6 +193,12 @@ class RenderBox:
     def add_render_obj(self, obj: Any):
         self.render_objs.append(RenderObject(obj))
 
+    def remove_render_obj(self, name: str):
+        for i in range(len(self.render_objs)):
+            if self.render_objs[i].name == name:
+                del self.render_objs[i]
+                break
+
     def _get_bbox(self) -> BoundingBox:
         return BoundingBox(xmin=self.x_left, ymin=self.y_bottom, xmax=self.x_right, ymax=self.y_top)
 
