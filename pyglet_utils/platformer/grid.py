@@ -22,6 +22,7 @@ class GridObject(BasicObject['GridObject']):
         assert hasattr(obj, 'x_right')
         assert hasattr(obj, 'y_bottom')
         assert hasattr(obj, 'y_top')
+        assert hasattr(obj, 'frame')
         self.obj = obj
         self.name = name
         self._grid_width = grid_width
@@ -35,7 +36,7 @@ class GridObject(BasicObject['GridObject']):
         # Contact Related
         self.is_in_contact = False
         self.contact_rectangle = Rectangle(
-            x=self.x, y=self.y, width=self.width, height=self.height,
+            x=self.camera_x, y=self.camera_y, width=self.width, height=self.height,
             color=(0,255,255), transparency=100
         )
     
@@ -101,6 +102,18 @@ class GridObject(BasicObject['GridObject']):
     def y_top(self) -> int:
         return self.obj.y_top
     
+    @property
+    def frame(self) -> Frame:
+        return self.obj.frame
+
+    @property
+    def camera_x(self) -> int:
+        return self.x - self.frame.x
+    
+    @property
+    def camera_y(self) -> int:
+        return self.y - self.frame.y
+
     def world_coord_to_grid_space(self, x: int, y: int) -> (int, int):
         space_x = floor((x - self._grid_origin_x) / self._tile_width)
         space_y = floor((y - self._grid_origin_y) / self._tile_height)
@@ -171,6 +184,9 @@ class GridObject(BasicObject['GridObject']):
     def occupied_spaces(self) -> List[Tuple[int]]:
         return self.get_occupied_spaces()
     
+    def update_contact_rect(self):
+        self.contact_rectangle.move_to(x=self.camera_x, y=self.camera_y)
+
 class GridObjectList(BasicHandler['GridObjectList', 'GridObject']):
     def __init__(
         self, grid_width: int, grid_height: int, tile_width: int, tile_height: int, grid_obj_list: List[GridObject]=None,
@@ -332,7 +348,7 @@ class Grid:
 
             # Move Contact Rectangles
             for grid_obj in self.contained_obj_list:
-                grid_obj.contact_rectangle.move(dx=dx, dy=dy)
+                grid_obj.update_contact_rect()
 
     def toggle_grid_visible(self):
         self.grid_visible = not self.grid_visible
