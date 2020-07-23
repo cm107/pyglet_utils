@@ -1,6 +1,7 @@
 from typing import List, Any, Tuple
 from .frame import Frame
 from ..lib.shapes import Rectangle
+from ..lib.exception_handler import Error
 from pyglet.graphics import Batch
 
 class RenderObject:
@@ -193,10 +194,19 @@ class RenderBox:
         self.render_objs.append(RenderObject(obj))
 
     def remove_render_obj(self, name: str):
-        for i in range(len(self.render_objs)):
+        found = False
+        for i in list(range(len(self.render_objs)))[::-1]:
             if self.render_objs[i].name == name:
+                found = True
                 del self.render_objs[i]
                 break
+        if not found:
+            Error(
+                f"""
+                Couldn't find render object by the name of {name}.
+                Failed to remove.
+                """
+            )
 
     def _get_bbox(self) -> BoundingBox:
         return BoundingBox(xmin=self.x_left, ymin=self.y_bottom, xmax=self.x_right, ymax=self.y_top)

@@ -30,7 +30,6 @@ class GameObject:
         self._parent_name = parent_name
         self._batch = batch
         self._is_anchor_x_centered = is_anchor_x_centered
-        self.frame.add_obj(self)
 
     @property
     def frame(self) -> Frame:
@@ -157,7 +156,7 @@ class GameObject:
         if not self.is_anchor_x_centered:
             return self.x + self.width
         else:
-            return self.x + self.width//2
+            return self.x + self.width//2 + 1
     
     @x_right.setter
     def x_right(self, x_right: int):
@@ -317,6 +316,14 @@ class GameObjectBatch(MultiParameterHandler[H, T]):
         for obj in self:
             obj.update_sprite_position()
 
+    @property
+    def camera_x(self) -> int:
+        return self.x - self.frame.x
+    
+    @property
+    def camera_y(self) -> int:
+        return self.y - self.frame.y
+
     def draw(self):
         self.batch.draw()
 
@@ -328,7 +335,13 @@ class GameObjectHandler:
 
         # Batch Based
         self.renderbox = renderbox
+
+        self.__check_lengths()
     
+    def __check_lengths(self):
+        assert len(self.frame.contained_obj_list) == len(self.grid.contained_obj_list)
+        assert len(self.renderbox.render_objs) <= len(self.frame.contained_obj_list)
+
     def append(self, obj):
         if issubclass(type(obj), GameObject):
             self.frame.add_obj(obj=obj)
@@ -336,8 +349,8 @@ class GameObjectHandler:
             self.renderbox.add_render_obj(obj=obj)
         elif issubclass(type(obj), GameObjectBatch):
             for game_obj in obj:
-                self.frame.add_obj(obj=obj)
-                self.grid.add_obj(obj=obj)
+                self.frame.add_obj(obj=game_obj)
+                self.grid.add_obj(obj=game_obj)
             self.renderbox.add_render_obj(obj)
         else:
             raise Error(
@@ -346,3 +359,10 @@ class GameObjectHandler:
                 {type(obj)} isn't a subclass of either GameObject or GameObjectBatch.
                 """
             )
+        self.__check_lengths()
+
+    def remove(self, name: str):
+        self.frame.remove_obj(name)
+        self.grid.remove_obj(name)
+        self.renderbox.remove_render_obj(name)
+        self.__check_lengths()

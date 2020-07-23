@@ -13,6 +13,7 @@ class FrameObject(BasicObject['FrameObject']):
         assert hasattr(obj, 'width')
         assert hasattr(obj, 'height')
         assert hasattr(obj, 'name')
+        assert hasattr(obj, 'parent_name')
         assert hasattr(obj, 'is_anchor_x_centered')
         self.obj = obj
     
@@ -31,6 +32,14 @@ class FrameObject(BasicObject['FrameObject']):
     @name.setter
     def name(self, name: str):
         self.obj.name = name
+
+    @property
+    def parent_name(self) -> str:
+        return self.obj.parent_name
+    
+    @parent_name.setter
+    def parent_name(self, parent_name: str):
+        self.obj.parent_name = parent_name
 
     @property
     def x(self) -> int:
@@ -158,13 +167,27 @@ class Frame:
                 FrameObject(obj=obj)
             )
         else:
-            raise Error(f"FrameObject by the name of '{obj.name}' already exists in Frame's FrameObjectList.'")
+            raise Error(
+                f"""
+                FrameObject by the name of '{obj.name}' already exists in Frame's FrameObjectList.
+                Existing names: {[obj.name for obj in self.contained_obj_list]}
+                """
+            )
 
     def remove_obj(self, name: str):
-        for i in range(len(self.contained_obj_list)):
-            if self.contained_obj_list[i].name == name:
+        found = False
+        for i in list(range(len(self.contained_obj_list)))[::-1]:
+            if self.contained_obj_list[i].name == name or self.contained_obj_list[i].parent_name == name:
+                found = True
                 del self.contained_obj_list[i]
                 break
+        if not found:
+            Error(
+                f"""
+                Couldn't find frame object by the name of {name}.
+                Failed to remove.
+                """
+            )
 
     def get_obj(self, name: str) -> FrameObject:
         return self.contained_obj_list.get_obj(name=name)
@@ -176,4 +199,7 @@ class Frame:
             return [obj for obj in self.contained_obj_list]
 
     def get_all_obj_in_frame(self) -> List[FrameObject]:
-        self.contained_obj_list.get_all_obj_in_frame(frame_x=self.x, frame_y=self.y, window=self.window)
+        return self.contained_obj_list.get_all_obj_in_frame(frame_x=self.x, frame_y=self.y, window=self.window)
+
+    def get_all_obj_names_in_frame(self) -> List[str]:
+        return [obj.name for obj in self.get_all_obj_in_frame()]

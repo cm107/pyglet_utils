@@ -57,11 +57,7 @@ class Player(GameObject):
         self.status = 'jumping'
         self.arrow_key_buffer = ArrowKeyBuffer()
 
-        # Render Related
-        self.renderbox.add_render_obj(self)
-
         # Grid Related
-        self.grid.add_obj(obj=self)
         self.up_contact_obj_list = cast(List[GridObject], [])
         self.down_contact_obj_list = cast(List[GridObject], [])
         self.left_contact_obj_list = cast(List[GridObject], [])

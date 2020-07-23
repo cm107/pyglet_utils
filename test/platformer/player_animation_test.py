@@ -12,8 +12,8 @@ from pyglet_utils.platformer.frame import Frame
 from pyglet_utils.platformer.platform import Platform, PlatformBlock
 from pyglet_utils.platformer.render import RenderBox
 from pyglet_utils.platformer.mouse import Mouse
+from pyglet_utils.platformer.game_obj import GameObjectHandler
 
-# TODO: Implement interactive map maker (based on mouse input).
 # TODO: Implement map save/load.
 #       Prerequisite: Map maker
 # TODO: Make it so that the position of objects only need to be calculated when
@@ -23,20 +23,24 @@ from typing import List
 from pyglet.image import AbstractImage
 
 class MapMaker:
-    def __init__(self, frame: Frame, grid: Grid, renderbox: RenderBox, mouse: Mouse, platform_list: List[Platform]=None, block_queue: Platform=None):
+    def __init__(
+        self, frame: Frame, grid: Grid, renderbox: RenderBox, mouse: Mouse, game_obj_handler: GameObjectHandler,
+        platform_list: List[Platform]=None, block_queue: Platform=None
+    ):
         self.frame = frame
         self.grid = grid
         self.renderbox = renderbox
         self.mouse = mouse
+        self.game_obj_handler = game_obj_handler
         self.platform_list = platform_list if platform_list is not None else []
+        for platform in self.platform_list:
+            self.game_obj_handler.append(platform)
         self.block_queue = block_queue if block_queue is not None else \
             Platform(frame=self.frame, grid=self.grid, renderbox=self.renderbox, batch=Batch(), name=f'Platform{len(self.platform_list)}')
 
     def add_block_to_queue(self, x: int, y: int, img: AbstractImage):
         self.block_queue.add_block(x=x, y=y, img=img)
-        # self.frame.add_obj(obj=self.block_queue.blocks[-1], name=self.block_queue.blocks[-1].name)
-        self.renderbox.add_render_obj(self.block_queue.blocks[-1])
-        self.grid.add_obj(obj=self.block_queue.blocks[-1])
+        self.game_obj_handler.append(self.block_queue.blocks[-1])
     
     def add_block_to_queue_from_space(self, grid_space_x: int, grid_space_y: int, img: AbstractImage):
         x, y = self.grid.grid_space_to_world_coord(space_x=grid_space_x, space_y=grid_space_y)
@@ -46,9 +50,7 @@ class MapMaker:
         self.add_block_to_queue_from_space(grid_space_x=self.mouse.grid_space_x, grid_space_y=self.mouse.grid_space_y, img=ItemImages.bomb)
 
     def remove_queue_block(self, name: str):
-        self.frame.remove_obj(name=name)
-        self.renderbox.remove_render_obj(name=name)
-        self.grid.remove_obj(name=name)
+        self.game_obj_handler.remove(name)
         self.block_queue.remove_block(name=name)
 
     def remove_queue_block_from_space(self, grid_space_x: int, grid_space_y: int):
@@ -89,6 +91,9 @@ class GameWindow(Window):
             coord_label_font_size=8
         )
 
+        # Create GameObjectHandler
+        self.game_obj_handler = GameObjectHandler(frame=self.frame, grid=self.grid, renderbox=self.renderbox)
+
         # Create Ground
         dirt_img = TileImages.dirtRight
         ground_grid_pos_list = [
@@ -98,12 +103,10 @@ class GameWindow(Window):
             grid_pos_list=ground_grid_pos_list, img_list=[dirt_img], batch=Batch(),
             frame=self.frame, grid=self.grid, renderbox=self.renderbox, name='Platform0'
         )
-        for block in platform.blocks:
-            self.grid.add_obj(obj=block)
-        self.renderbox.add_render_obj(platform)
 
         # Create Player
         self.player = Player(x=int(0.5*self.width), y=int(0.3*self.height), frame=self.frame, grid=self.grid, renderbox=self.renderbox, debug=False)
+        self.game_obj_handler.append(self.player)
         self.player_coord_label = Label(
             text=self.grid.get_coords_str(obj_name=self.player.name),
             font_name='Times New Roman',
@@ -128,7 +131,7 @@ class GameWindow(Window):
 
         # MapMaker Related
         self.map_maker = MapMaker(
-            frame=self.frame, renderbox=self.renderbox, grid=self.grid, mouse=self.mouse,
+            frame=self.frame, renderbox=self.renderbox, grid=self.grid, mouse=self.mouse, game_obj_handler=self.game_obj_handler,
             platform_list=[platform], block_queue=None
         )
 
@@ -155,14 +158,18 @@ class GameWindow(Window):
         self.mouse.update_cursor_rect()
 
     def on_mouse_press(self, x, y, button, modifiers):
-        print(f'Press: {button}')
+        pass
 
     def on_mouse_release(self, x, y, button, modifiers):
-        print(f'Release: {button}')
+        space_x, space_y = self.grid.world_coord_to_grid_space(x=x+self.frame.x, y=y+self.frame.y)
         if button == window_mouse.LEFT:
-            self.map_maker.add_block_to_queue_from_mouse()
+            if (space_x, space_y) not in self.grid.contained_obj_list.get_occupied_spaces(include_names=self.frame.get_all_obj_names_in_frame()):
+                print('Added')
+                self.map_maker.add_block_to_queue_from_mouse()
         elif button == window_mouse.RIGHT:
-            self.map_maker.remove_queue_block_from_mouse()
+            if (space_x, space_y) in self.grid.contained_obj_list.get_occupied_spaces(include_names=self.frame.get_all_obj_names_in_frame()):
+                print('Removed')
+                self.map_maker.remove_queue_block_from_mouse()
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         pass

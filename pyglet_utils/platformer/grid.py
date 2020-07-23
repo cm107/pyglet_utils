@@ -1,4 +1,5 @@
 from ..lib.shapes import LineGrid, Rectangle
+from ..lib.exception_handler import Error
 from .frame import Frame
 from typing import Any, List, Tuple
 from common_utils.base.basic import BasicObject, BasicHandler
@@ -429,10 +430,19 @@ class Grid:
         self.contained_obj_list.append(grid_obj)
     
     def remove_obj(self, name: str):
-        for i in range(len(self.contained_obj_list)):
-            if self.contained_obj_list[i].name == name:
+        found = False
+        for i in list(range(len(self.contained_obj_list)))[::-1]:
+            if self.contained_obj_list[i].name == name or self.contained_obj_list[i].parent_name == name:
+                found = True
                 del self.contained_obj_list[i]
                 break
+        if not found:
+            Error(
+                f"""
+                Couldn't find grid object by the name of {name}.
+                Failed to remove.
+                """
+            )
 
     def toggle_show_contacts(self):
         self.show_contacts = not self.show_contacts
