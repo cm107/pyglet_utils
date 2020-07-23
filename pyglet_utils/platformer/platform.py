@@ -5,7 +5,8 @@ from pyglet.graphics import Batch
 from .frame import Frame
 from .grid import Grid
 from .render import RenderBox
-from .game_obj import GameObject
+from .game_obj import GameObject, GameObjectBatch
+from common_utils.base.basic import MultiParameterHandler
 
 class PlatformBlock(GameObject):
     def __init__(self, x: int, y: int, img: AbstractImage, frame: Frame, grid: Grid, renderbox: RenderBox, batch: Batch=None, name: str='PlatformBlockSample'):
@@ -20,24 +21,16 @@ class PlatformBlock(GameObject):
             img=img, frame=frame, grid=grid, renderbox=renderbox, batch=batch, name=name
         )
 
-class Platform:
-    def __init__(self, frame: Frame, grid: Grid, renderbox: RenderBox, blocks: List[PlatformBlock]=None, batch: Batch=None, name: str='PlatformSample0'):
-        self.batch = batch if batch is not None else Batch()
-        self.blocks = blocks if blocks is not None else []
-        self.frame = frame
-        self.grid = grid
-        self.renderbox = renderbox
-        self.name = name
-
-    def soft_copy(self) -> Platform:
-        return Platform(
-            frame=self.frame,
-            grid=self.grid,
-            renderbox=self.renderbox,
-            blocks=self.blocks,
-            batch=self.batch,
-            name=self.name
+class Platform(
+    GameObjectBatch['Platform', 'PlatformBlock'],
+    MultiParameterHandler['Platform', 'PlatformBlock']
+):
+    def __init__(self, frame: Frame, grid: Grid, renderbox: RenderBox, batch: Batch=None, blocks: List[PlatformBlock]=None, name: str='PlatformSample0'):
+        super().__init__(
+            frame=frame, grid=grid, renderbox=renderbox, name=name, batch=batch,
+            obj_type=PlatformBlock, game_objects=blocks
         )
+        self.blocks = self.obj_list
 
     @classmethod
     def from_pos_list(
@@ -46,7 +39,7 @@ class Platform:
         blocks = [
             PlatformBlock(
                 x=x, y=y, img=img_list[i % len(img_list)],
-                frame=frame, grid=grid, renderbox=renderbox, batch=batch,
+                frame=frame, grid=grid, renderbox=renderbox,
                 name=f'{name}_Block{i}'
             ) for i, (x, y) in enumerate(pos_list)
         ]
@@ -61,7 +54,7 @@ class Platform:
         blocks = [
             PlatformBlock.from_grid_space_coord(
                 grid_space_x=grid_space_x, grid_space_y=grid_space_y, img=img_list[i % len(img_list)],
-                frame=frame, grid=grid, renderbox=renderbox, batch=batch,
+                frame=frame, grid=grid, renderbox=renderbox,
                 name=f'{name}_Block{i}'
             ) for i, (grid_space_x, grid_space_y) in enumerate(grid_pos_list)
         ]
@@ -75,95 +68,10 @@ class Platform:
     def add_block(self, x: int, y: int, img: AbstractImage):
         new_block = PlatformBlock(
             x=x, y=y, img=img,
-            frame=self.frame, grid=self.grid, renderbox=self.renderbox, batch=self.batch,
+            frame=self.frame, grid=self.grid, renderbox=self.renderbox,
             name=f'{self.name}_Block{len(self.blocks)}'
         )
-        self.blocks.append(new_block)
+        self.append(new_block)
     
     def remove_block(self, name: str):
-        block_names = self.get_block_names()
-        idx = block_names.index(name)
-        del self.blocks[idx]
-
-    @property
-    def x(self) -> int:
-        return min([block.x for block in self.blocks])
-
-    @x.setter
-    def x(self, x: int):
-        dx = x - self.x
-        for block in self.blocks:
-            block.x += dx
-
-    @property
-    def y(self) -> int:
-        return min([block.y for block in self.blocks])
-
-    @y.setter
-    def y(self, y: int):
-        dy = y - self.y
-        for block in self.blocks:
-            block.y += dy
-
-    @property
-    def position(self) -> (int, int):
-        return (self.x, self.y)
-
-    @property
-    def x_left(self) -> int:
-        return min([block.x_left for block in self.blocks])
-
-    @x_left.setter
-    def x_left(self, x_left: int):
-        dx = x_left - self.x_left
-        for block in self.blocks:
-            block.x += dx
-
-    @property
-    def x_right(self) -> int:
-        return max([block.x_right for block in self.blocks])
-
-    @x_right.setter
-    def x_right(self, x_right: int):
-        dx = x_right - self.x_right
-        for block in self.blocks:
-            block.x += dx
-
-    @property
-    def y_bottom(self) -> int:
-        return min([block.y_bottom for block in self.blocks])
-
-    @y_bottom.setter
-    def y_bottom(self, y_bottom: int):
-        dy = y_bottom - self.y_bottom
-        for block in self.blocks:
-            block.y += dy
-
-    @property
-    def y_top(self) -> int:
-        return max([block.y_top for block in self.blocks])
-
-    @y_top.setter
-    def y_top(self, y_top: int):
-        dy = y_top - self.y_top
-        for block in self.blocks:
-            block.y += dy
-
-    @property
-    def width(self) -> int:
-        return self.x_right - self.x_left
-    
-    @property
-    def height(self) -> int:
-        return self.y_top - self.y_bottom
-
-    @property
-    def shape(self) -> (int, int):
-        return (self.width, self.height)
-
-    def update_sprite_position(self):
-        for block in self.blocks:
-            block.update_sprite_position()
-
-    def draw(self):
-        self.batch.draw()
+        self.remove(name=name)
