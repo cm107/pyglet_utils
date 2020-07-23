@@ -35,7 +35,7 @@ class ArrowKeyBuffer:
         return len(self.buffer) == 0
 
 class Player(GameObject):
-    def __init__(self, x: int, y: int, frame: Frame, renderbox: RenderBox, grid: Grid, name: str='Player1', batch: Batch=None, debug: bool=False):
+    def __init__(self, x: int, y: int, frame: Frame, grid: Grid, renderbox: RenderBox, name: str='Player1', batch: Batch=None, debug: bool=False):
         # Player Sprite Select Related
         self.player_res_list = [PlayerImages.p1, PlayerImages.p2, PlayerImages.p3]
         self.player_select = 0
@@ -43,7 +43,7 @@ class Player(GameObject):
 
         # Initialize Base Class
         super().__init__(
-            x=x, y=y, img=self.player_res.jump_right, frame=frame, name=name,
+            x=x, y=y, img=self.player_res.jump_right, frame=frame, grid=grid, renderbox=renderbox, name=name,
             batch=batch, usage='dynamic',
             is_anchor_x_centered=True
         )
@@ -58,11 +58,9 @@ class Player(GameObject):
         self.arrow_key_buffer = ArrowKeyBuffer()
 
         # Render Related
-        self.renderbox = renderbox
         self.renderbox.add_render_obj(self)
 
         # Grid Related
-        self.grid = grid
         self.grid.add_obj(obj=self, name=name, is_anchor_x_centered=True)
         self.up_contact_obj_list = cast(List[GridObject], [])
         self.down_contact_obj_list = cast(List[GridObject], [])

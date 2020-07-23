@@ -2,15 +2,21 @@ from pyglet.sprite import Sprite
 from pyglet.graphics import Batch
 from pyglet.image import AbstractImage, Animation
 from .frame import Frame
+from .grid import Grid
+from .render import RenderBox
 
 from logger import logger
 
+# TODO: Create a GameObjectHandler that will facilitate the process of adding and removing instances from frame, grid, and renderbox
 class GameObject:
     def __init__(
-        self, x: int, y: int, img: AbstractImage, frame: Frame, name: str, batch: Batch=None, usage: str='dynamic',
+        self, x: int, y: int, img: AbstractImage, frame: Frame, grid: Grid, renderbox: RenderBox, name: str,
+        batch: Batch=None, usage: str='dynamic',
         is_anchor_x_centered: bool=False
     ):
-        self.frame = frame
+        self._frame = frame
+        self._grid = grid
+        self._renderbox = renderbox
         self._x, self._y = x, y
         if not isinstance(img, (AbstractImage, Animation)):
             logger.error(f'img must be an instance of AbstractImage or Animation')
@@ -21,6 +27,18 @@ class GameObject:
         self.batch = batch
         self.frame.add_obj(self, name=name, is_anchor_x_centered=is_anchor_x_centered)
         self._is_anchor_x_centered = is_anchor_x_centered
+
+    @property
+    def frame(self) -> Frame:
+        return self._frame
+
+    @property
+    def grid(self) -> Grid:
+        return self._grid
+    
+    @property
+    def renderbox(self) -> RenderBox:
+        return self._renderbox
 
     @property
     def is_anchor_x_centered(self) -> bool:

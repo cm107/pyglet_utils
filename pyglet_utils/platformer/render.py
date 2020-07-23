@@ -1,7 +1,5 @@
 from typing import List, Any, Tuple
-from .frame import Frame, FrameObject
-from .grid import Grid
-from .game_obj import GameObject
+from .frame import Frame
 from ..lib.shapes import Rectangle
 from pyglet.graphics import Batch
 
@@ -82,7 +80,8 @@ class BoundingBox:
         self.xmax = xmax
         self.ymax = ymax
     
-    def contains(self, obj: GameObject, fully: bool=False):
+    def contains(self, obj, fully: bool=False):
+        # Assume obj is a subclass of GameObject
         if not fully:
             hor_contained_partially = obj.x_right > self.xmin and obj.x_left < self.xmax
             vert_contained_partially = obj.y_top > self.ymin and obj.y_bottom < self.ymax

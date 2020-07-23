@@ -23,14 +23,14 @@ from typing import List
 from pyglet.image import AbstractImage
 
 class MapMaker:
-    def __init__(self, frame: Frame, renderbox: RenderBox, grid: Grid, mouse: Mouse, platform_list: List[Platform]=None, block_queue: Platform=None):
+    def __init__(self, frame: Frame, grid: Grid, renderbox: RenderBox, mouse: Mouse, platform_list: List[Platform]=None, block_queue: Platform=None):
         self.frame = frame
-        self.renderbox = renderbox
         self.grid = grid
+        self.renderbox = renderbox
         self.mouse = mouse
         self.platform_list = platform_list if platform_list is not None else []
         self.block_queue = block_queue if block_queue is not None else \
-            Platform(frame=self.frame, batch=Batch(), name=f'Platform{len(self.platform_list)}')
+            Platform(frame=self.frame, grid=self.grid, renderbox=self.renderbox, batch=Batch(), name=f'Platform{len(self.platform_list)}')
 
     def add_block_to_queue(self, x: int, y: int, img: AbstractImage):
         self.block_queue.add_block(x=x, y=y, img=img)
@@ -61,7 +61,7 @@ class MapMaker:
 
     def push_queue(self):
         self.platform_list.append(self.block_queue.soft_copy())
-        self.block_queue = Platform(frame=self.frame, batch=Batch(), name=f'Platform{len(self.platform_list)}')
+        self.block_queue = Platform(frame=self.frame, grid=self.grid, renderbox=self.renderbox, batch=Batch(), name=f'Platform{len(self.platform_list)}')
 
     def draw(self):
         for platform in self.platform_list:
@@ -94,13 +94,16 @@ class GameWindow(Window):
         ground_grid_pos_list = [
             (-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (2, -1), (3, -1), (3, 0), (4, -1), (5, -1), (5, 0), (6, -1), (7, -1), (7, 0), (8, -1)
         ]
-        platform = Platform.from_grid_space_coords(grid_pos_list=ground_grid_pos_list, grid=self.grid, img_list=[dirt_img], batch=Batch(), frame=self.frame, name='Platform0')
+        platform = Platform.from_grid_space_coords(
+            grid_pos_list=ground_grid_pos_list, img_list=[dirt_img], batch=Batch(),
+            frame=self.frame, grid=self.grid, renderbox=self.renderbox, name='Platform0'
+        )
         for block in platform.blocks:
             self.grid.add_obj(obj=block, name=block.name, parent_name=platform.name)
-        self.renderbox.add_render_obj(platform)
+        self.renderbox.add_render_obj(platform) # TODO: Move this to Platform class.
 
         # Create Player
-        self.player = Player(x=int(0.5*self.width), y=int(0.3*self.height), frame=self.frame, renderbox=self.renderbox, grid=self.grid, debug=False)
+        self.player = Player(x=int(0.5*self.width), y=int(0.3*self.height), frame=self.frame, grid=self.grid, renderbox=self.renderbox, debug=False)
         self.player_coord_label = Label(
             text=self.grid.get_coords_str(obj_name=self.player.name),
             font_name='Times New Roman',
