@@ -8,10 +8,8 @@ from pyglet.graphics import Batch
 
 class GridObject(BasicObject['GridObject']):
     def __init__(
-        self, obj: Any, name: str, grid_width: int, grid_height: int, tile_width: int, tile_height: int,
-        grid_origin_x: int=0, grid_origin_y: int=0,
-        is_anchor_x_centered: bool=False,
-        parent_name: str=None
+        self, obj: Any, grid_width: int, grid_height: int, tile_width: int, tile_height: int,
+        grid_origin_x: int=0, grid_origin_y: int=0
     ):
         super().__init__()
         assert hasattr(obj, 'x')
@@ -23,15 +21,15 @@ class GridObject(BasicObject['GridObject']):
         assert hasattr(obj, 'y_bottom')
         assert hasattr(obj, 'y_top')
         assert hasattr(obj, 'frame')
+        assert hasattr(obj, 'name')
+        assert hasattr(obj, 'parent_name')
+        assert hasattr(obj, 'is_anchor_x_centered')
         self.obj = obj
-        self.name = name
         self._grid_width = grid_width
         self._grid_height = grid_height
         self._tile_width = tile_width
         self._tile_height = tile_height
         self._grid_origin_x, self._grid_origin_y = grid_origin_x, grid_origin_y
-        self._is_anchor_x_centered = is_anchor_x_centered
-        self.parent_name = parent_name
 
         # Contact Related
         self.is_in_contact = False
@@ -41,15 +39,39 @@ class GridObject(BasicObject['GridObject']):
         )
     
     @property
+    def name(self) -> str:
+        return self.obj.name
+    
+    @name.setter
+    def name(self, name: str):
+        self.obj.name = name
+    
+    @property
+    def is_anchor_x_centered(self) -> bool:
+        return self.obj.is_anchor_x_centered
+
+    @is_anchor_x_centered.setter
+    def is_anchor_x_centered(self, is_anchor_x_centered: bool):
+        self.obj.is_anchor_x_centered = is_anchor_x_centered
+
+    @property
+    def parent_name(self) -> str:
+        return self.obj.parent_name
+    
+    @parent_name.setter
+    def parent_name(self, parent_name: str):
+        self.obj.parent_name = parent_name
+
+    @property
     def x(self) -> int:
-        if not self._is_anchor_x_centered:
+        if not self.is_anchor_x_centered:
             return int(self.obj.x)
         else:
             return int(self.obj.x - 0.5*self.obj.width)
 
     @x.setter
     def x(self, x: int):
-        if not self._is_anchor_x_centered:
+        if not self.is_anchor_x_centered:
             self.obj.x = x
         else:
             self.obj.x = x + 0.5*self.obj.width
@@ -396,15 +418,13 @@ class Grid:
         coord_str = f'{obj_name}: ({xmin}:{xmax}, {ymin}:{ymax})'
         return coord_str
     
-    def add_obj(self, obj: Any, name: str, is_anchor_x_centered: bool=False, parent_name: str=None):
+    def add_obj(self, obj: Any):
         obj_id = id if id is not None else len(self.contained_obj_list)
         grid_obj = GridObject(
-            obj=obj, name=name,
+            obj=obj,
             grid_width=self.grid_width, grid_height=self.grid_height,
             tile_width=self.tile_width, tile_height=self.tile_height,
-            grid_origin_x=self.grid_origin_x, grid_origin_y=self.grid_origin_y,
-            is_anchor_x_centered=is_anchor_x_centered,
-            parent_name=parent_name
+            grid_origin_x=self.grid_origin_x, grid_origin_y=self.grid_origin_y
         )
         self.contained_obj_list.append(grid_obj)
     

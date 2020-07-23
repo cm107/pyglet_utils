@@ -61,7 +61,7 @@ class Player(GameObject):
         self.renderbox.add_render_obj(self)
 
         # Grid Related
-        self.grid.add_obj(obj=self, name=name, is_anchor_x_centered=True)
+        self.grid.add_obj(obj=self)
         self.up_contact_obj_list = cast(List[GridObject], [])
         self.down_contact_obj_list = cast(List[GridObject], [])
         self.left_contact_obj_list = cast(List[GridObject], [])

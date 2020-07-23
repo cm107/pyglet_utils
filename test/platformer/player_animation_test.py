@@ -36,7 +36,7 @@ class MapMaker:
         self.block_queue.add_block(x=x, y=y, img=img)
         # self.frame.add_obj(obj=self.block_queue.blocks[-1], name=self.block_queue.blocks[-1].name)
         self.renderbox.add_render_obj(self.block_queue.blocks[-1])
-        self.grid.add_obj(obj=self.block_queue.blocks[-1], name=self.block_queue.blocks[-1].name, parent_name=self.block_queue.name)
+        self.grid.add_obj(obj=self.block_queue.blocks[-1])
     
     def add_block_to_queue_from_space(self, grid_space_x: int, grid_space_y: int, img: AbstractImage):
         x, y = self.grid.grid_space_to_world_coord(space_x=grid_space_x, space_y=grid_space_y)
@@ -99,8 +99,8 @@ class GameWindow(Window):
             frame=self.frame, grid=self.grid, renderbox=self.renderbox, name='Platform0'
         )
         for block in platform.blocks:
-            self.grid.add_obj(obj=block, name=block.name, parent_name=platform.name)
-        self.renderbox.add_render_obj(platform) # TODO: Move this to Platform class.
+            self.grid.add_obj(obj=block)
+        self.renderbox.add_render_obj(platform)
 
         # Create Player
         self.player = Player(x=int(0.5*self.width), y=int(0.3*self.height), frame=self.frame, grid=self.grid, renderbox=self.renderbox, debug=False)

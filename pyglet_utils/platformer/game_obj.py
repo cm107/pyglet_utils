@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, TypeVar
 from pyglet.sprite import Sprite
 from pyglet.graphics import Batch
 from pyglet.image import AbstractImage, Animation
@@ -9,13 +9,13 @@ from ..lib.exception_handler import Error
 
 from logger import logger
 from common_utils.base.basic import MultiParameterHandler
+from common_utils.check_utils import check_issubclass
 
-# TODO: Create a GameObjectHandler that will facilitate the process of adding and removing instances from frame, grid, and renderbox
 class GameObject:
     def __init__(
         self, x: int, y: int, img: AbstractImage, frame: Frame, grid: Grid, renderbox: RenderBox, name: str,
         batch: Batch=None, usage: str='dynamic',
-        is_anchor_x_centered: bool=False
+        is_anchor_x_centered: bool=False, parent_name: str=None
     ):
         self._frame = frame
         self._grid = grid
@@ -27,9 +27,10 @@ class GameObject:
             raise Exception
         self._sprite = Sprite(img=img, x=self.camera_x, y=self.camera_y, batch=batch, usage=usage)
         self._name = name
+        self._parent_name = parent_name
         self._batch = batch
-        self.frame.add_obj(self, name=name, is_anchor_x_centered=is_anchor_x_centered)
         self._is_anchor_x_centered = is_anchor_x_centered
+        self.frame.add_obj(self)
 
     @property
     def frame(self) -> Frame:
@@ -55,6 +56,14 @@ class GameObject:
     def name(self, name: str):
         self._name = name
     
+    @property
+    def parent_name(self) -> str:
+        return self._parent_name
+    
+    @parent_name.setter
+    def parent_name(self, parent_name: str):
+        self._parent_name = parent_name
+
     @property
     def batch(self) -> Batch:
         return self._batch
@@ -184,8 +193,6 @@ class GameObject:
     def draw(self):
         self.sprite.draw()
 
-from typing import TypeVar
-
 T = TypeVar('T')
 H = TypeVar('H')
 
@@ -199,7 +206,7 @@ class GameObjectBatch(MultiParameterHandler[H, T]):
         self.name = name
         self.batch = batch
         for i, obj in enumerate(self.obj_list):
-            self.update_obj_batch(obj)
+            self.update_obj_preappend(obj)
     
     def __check_new_obj(self, obj: T):
         check_issubclass(obj, valid_parent_class_list=[GameObject])
@@ -207,12 +214,13 @@ class GameObjectBatch(MultiParameterHandler[H, T]):
         assert hasattr(obj, 'batch')
         assert hasattr(obj, 'name')
 
-    def update_obj_batch(self: H, obj: T):
+    def update_obj_preappend(self: H, obj: T):
         obj.batch = self.batch
+        obj.parent_name = self.name
 
     def append(self: H, obj: T):
         self.__check_new_obj(obj)
-        self.update_obj_batch(obj)
+        self.update_obj_preappend(obj)
         super().append(obj)
     
     def remove(self, name: str):
@@ -312,23 +320,29 @@ class GameObjectBatch(MultiParameterHandler[H, T]):
     def draw(self):
         self.batch.draw()
 
-from common_utils.check_utils import check_issubclass, check_issubclass_from_list
-
-# TODO: Create ParallelHandler?
-class GameObjectCollection:
-    def __init__(self, frame: Frame, grid: Grid, renderbox: RenderBox, contained_obj_list: List[GameObject]=None):
+class GameObjectHandler:
+    def __init__(self, frame: Frame, grid: Grid, renderbox: RenderBox):
+        # Object Based
         self.frame = frame
         self.grid = grid
+
+        # Batch Based
         self.renderbox = renderbox
-        self.contained_obj_list = contained_obj_list if contained_obj_list is not None else []
     
-    def _register_obj(self, obj: GameObject, parent_name: str=None):
-        check_issubclass(obj, valid_parent_class_list=[GameObject])
-
-        # TODO: Get rid of unnecessary parameters
-        # TODO: Make it so that parent_name doesn't need to be given like this.
-        # TODO: Figure out how to separate Platform and PlatformBlock -> TODO: Create a class like GameObject except for batch groups of GameObjects
-        self.frame.add_obj(obj=obj, name=obj.name, is_anchor_x_centered=obj.is_anchor_x_centered)
-        self.grid.add_obj(obj=obj, name=obj.name, is_anchor_x_centered=obj.is_anchor_x_centered, parent_name=parent_name)
-        self.renderbox.add_render_obj(obj=obj)
-
+    def append(self, obj):
+        if issubclass(type(obj), GameObject):
+            self.frame.add_obj(obj=obj)
+            self.grid.add_obj(obj=obj)
+            self.renderbox.add_render_obj(obj=obj)
+        elif issubclass(type(obj), GameObjectBatch):
+            for game_obj in obj:
+                self.frame.add_obj(obj=obj)
+                self.grid.add_obj(obj=obj)
+            self.renderbox.add_render_obj(obj)
+        else:
+            raise Error(
+                f"""
+                Can't append object of type {type(obj)} to GameObjectHandler because
+                {type(obj)} isn't a subclass of either GameObject or GameObjectBatch.
+                """
+            )

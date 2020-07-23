@@ -4,9 +4,7 @@ from typing import Any, List
 from ..lib.exception_handler import Error
 
 class FrameObject(BasicObject['FrameObject']):
-    def __init__(
-        self, obj: Any, name: str, is_anchor_x_centered: bool=False
-    ):
+    def __init__(self, obj: Any):
         super().__init__()
         assert hasattr(obj, 'x')
         assert hasattr(obj, 'y')
@@ -14,21 +12,29 @@ class FrameObject(BasicObject['FrameObject']):
         assert hasattr(obj, 'camera_y')
         assert hasattr(obj, 'width')
         assert hasattr(obj, 'height')
+        assert hasattr(obj, 'name')
+        assert hasattr(obj, 'is_anchor_x_centered')
         self.obj = obj
-        self.name = name
-        self._is_anchor_x_centered = is_anchor_x_centered
     
     @property
     def is_anchor_x_centered(self) -> bool:
-        return self._is_anchor_x_centered
+        return self.obj.is_anchor_x_centered
     
     @is_anchor_x_centered.setter
     def is_anchor_x_centered(self, is_anchor_x_centered: bool):
-        self._is_anchor_x_centered = is_anchor_x_centered
+        self.obj.is_anchor_x_centered = is_anchor_x_centered
+
+    @property
+    def name(self) -> str:
+        return self.obj.name
+    
+    @name.setter
+    def name(self, name: str):
+        self.obj.name = name
 
     @property
     def x(self) -> int:
-        if not self._is_anchor_x_centered:
+        if not self.is_anchor_x_centered:
             return int(self.obj.x)
         else:
             return int(self.obj.x - 0.5*self.obj.width)
@@ -145,17 +151,14 @@ class Frame:
         self.x += dx
         self.y += dy
     
-    def add_obj(self, obj: Any, name: str, is_anchor_x_centered: bool=False):
-        if not self.contained_obj_list.is_in_list(name):
+    def add_obj(self, obj: Any):
+        assert hasattr(obj, 'name')
+        if not self.contained_obj_list.is_in_list(obj.name):
             self.contained_obj_list.append(
-                FrameObject(
-                    obj=obj,
-                    name=name,
-                    is_anchor_x_centered=is_anchor_x_centered
-                )
+                FrameObject(obj=obj)
             )
         else:
-            raise Error(f"FrameObject by the name of '{name}' already exists in Frame's FrameObjectList.'")
+            raise Error(f"FrameObject by the name of '{obj.name}' already exists in Frame's FrameObjectList.'")
 
     def remove_obj(self, name: str):
         for i in range(len(self.contained_obj_list)):
