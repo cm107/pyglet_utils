@@ -75,6 +75,7 @@ class Mouse:
     def leave_window(self):
         self.x, self.y = None, None
         self.dx, self.dy = None, None
+        self.grid_space_x, self.grid_space_y = None, None
         self.cursor_select_rectangle = None
     
     def move(self, x: int, y: int, dx: int, dy: int):

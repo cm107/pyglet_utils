@@ -37,10 +37,11 @@ class MapMaker:
             self.game_obj_handler.append(platform)
         self.block_queue = block_queue if block_queue is not None else \
             Platform(frame=self.frame, grid=self.grid, renderbox=self.renderbox, batch=Batch(), name=f'Platform{len(self.platform_list)}')
+        self.game_obj_handler.append(self.block_queue)
 
     def add_block_to_queue(self, x: int, y: int, img: AbstractImage):
         self.block_queue.add_block(x=x, y=y, img=img)
-        self.game_obj_handler.append(self.block_queue.blocks[-1])
+        self.game_obj_handler.append(self.block_queue.blocks[-1], to_renderbox=False)
     
     def add_block_to_queue_from_space(self, grid_space_x: int, grid_space_y: int, img: AbstractImage):
         x, y = self.grid.grid_space_to_world_coord(space_x=grid_space_x, space_y=grid_space_y)
@@ -61,14 +62,10 @@ class MapMaker:
     def remove_queue_block_from_mouse(self):
         self.remove_queue_block_from_space(grid_space_x=self.mouse.grid_space_x, grid_space_y=self.mouse.grid_space_y)
 
-    def push_queue(self):
-        self.platform_list.append(self.block_queue.soft_copy())
+    def push_queue(self): # TODO: Map to button and test functionality
+        self.platform_list.append(self.block_queue.copy())
         self.block_queue = Platform(frame=self.frame, grid=self.grid, renderbox=self.renderbox, batch=Batch(), name=f'Platform{len(self.platform_list)}')
-
-    def draw(self):
-        for platform in self.platform_list:
-            platform.draw()
-        self.block_queue.draw()
+        self.game_obj_handler.append(self.block_queue)
 
 class GameWindow(Window):
     def __init__(self, width: int, height: int, caption: str):
@@ -97,7 +94,7 @@ class GameWindow(Window):
         # Create Ground
         dirt_img = TileImages.dirtRight
         ground_grid_pos_list = [
-            (-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (2, -1), (3, -1), (3, 0), (4, -1), (5, -1), (5, 0), (6, -1), (7, -1), (7, 0), (8, -1)
+            (-1, -1), (0, -1), (1, -1), (2, -1), (3, -1), (4, -1), (5, -1), (6, -1), (7, -1), (8, -1)
         ]
         platform = Platform.from_grid_space_coords(
             grid_pos_list=ground_grid_pos_list, img_list=[dirt_img], batch=Batch(),
@@ -176,7 +173,6 @@ class GameWindow(Window):
 
     def on_draw(self):
         self.clear()
-        self.map_maker.draw()
         self.renderbox.draw_all_renderable_objects()
         self.mouse.draw()
         self.grid.draw()
@@ -210,6 +206,8 @@ class GameWindow(Window):
                 self.grid.toggle_coord_labels_visible()
             elif symbol == key.D:
                 self.toggle_debug()
+            elif symbol == key.Q:
+                self.map_maker.push_queue()
             elif symbol == key.P:
                 self.toggle_pause()
             elif symbol == key.ESCAPE:
@@ -225,6 +223,8 @@ class GameWindow(Window):
                 self.grid.toggle_coord_labels_visible()
             elif symbol == key.D:
                 self.toggle_debug()
+            elif symbol == key.Q:
+                self.map_maker.push_queue()
 
     def on_key_release(self, symbol, modifiers):
         if not self.paused:

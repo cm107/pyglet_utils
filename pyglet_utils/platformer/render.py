@@ -6,6 +6,8 @@ from pyglet.graphics import Batch
 
 class RenderObject:
     def __init__(self, obj: Any):
+        assert hasattr(obj, 'x')
+        assert hasattr(obj, 'y')
         assert hasattr(obj, 'x_left')
         assert hasattr(obj, 'x_right')
         assert hasattr(obj, 'y_bottom')
@@ -13,7 +15,26 @@ class RenderObject:
         assert hasattr(obj, 'batch')
         assert hasattr(obj, 'draw')            
         assert hasattr(obj, 'name')
+        assert hasattr(obj, 'camera_x')
+        assert hasattr(obj, 'camera_y')
+        assert hasattr(obj, 'frame')
         self.obj = obj
+
+    @property
+    def x(self) -> int:
+        return self.obj.x
+    
+    @x.setter
+    def x(self, x: int):
+        self.obj.x = x
+    
+    @property
+    def y(self) -> int:
+        return self.obj.y_bottom
+    
+    @y.setter
+    def y(self, y: int):
+        self.obj.y = y
 
     @property
     def x_left(self) -> int:
@@ -46,6 +67,14 @@ class RenderObject:
     @y_top.setter
     def y_top(self, y_top: int):
         self.obj.y_top = y_top
+
+    @property
+    def camera_x(self) -> int:
+        return self.x - self.obj.frame.x if len(self) > 0 else None
+    
+    @property
+    def camera_y(self) -> int:
+        return self.y - self.obj.frame.y if len(self) > 0 else None
 
     @property
     def name(self) -> str:
@@ -84,12 +113,12 @@ class BoundingBox:
     def contains(self, obj, fully: bool=False):
         # Assume obj is a subclass of GameObject
         if not fully:
-            hor_contained_partially = obj.x_right > self.xmin and obj.x_left < self.xmax
-            vert_contained_partially = obj.y_top > self.ymin and obj.y_bottom < self.ymax
+            hor_contained_partially = obj.x_right > self.xmin and obj.x_left < self.xmax if obj.x is not None else False
+            vert_contained_partially = obj.y_top > self.ymin and obj.y_bottom < self.ymax if obj.y is not None else False
             return hor_contained_partially and vert_contained_partially
         else:
-            hor_contained_fully = obj.x_left >= self.xmin and obj.x_right <= self.xmax
-            vert_contained_fully = obj.y_bottom >= self.ymin and obj.y_top <= self.ymax
+            hor_contained_fully = obj.x_left >= self.xmin and obj.x_right <= self.xmax if obj.x is not None else False
+            vert_contained_fully = obj.y_bottom >= self.ymin and obj.y_top <= self.ymax if obj.y is not None else False
             return hor_contained_fully and vert_contained_fully
 
 class RenderBox:

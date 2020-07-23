@@ -1,3 +1,4 @@
+from abc import abstractclassmethod
 from typing import List, TypeVar
 from pyglet.sprite import Sprite
 from pyglet.graphics import Batch
@@ -233,26 +234,27 @@ class GameObjectBatch(MultiParameterHandler[H, T]):
         if not found:
             raise Error(f"Remove failed. Couldn't find object by the name of {name}")
 
-    def soft_copy(self: H) -> H: # TODO: Remove necessity for this method.
-        return super().copy()
+    @abstractclassmethod
+    def copy(self) -> H:
+        raise NotImplementedError
 
     @property
     def x(self) -> int:
-        return min([obj.x for obj in self])
+        return min([obj.x for obj in self]) if len(self) > 0 else None
 
     @x.setter
     def x(self, x: int):
-        dx = x - self.x
+        dx = x - self.x if len(self) > 0 else 0
         for obj in self:
             obj.x += dx
 
     @property
     def y(self) -> int:
-        return min([obj.y for obj in self])
+        return min([obj.y for obj in self]) if len(self) > 0 else None
 
     @y.setter
     def y(self, y: int):
-        dy = y - self.y
+        dy = y - self.y if len(self) > 0 else 0
         for obj in self:
             obj.y += dy
 
@@ -262,51 +264,51 @@ class GameObjectBatch(MultiParameterHandler[H, T]):
 
     @property
     def x_left(self) -> int:
-        return min([obj.x_left for obj in self])
+        return min([obj.x_left for obj in self]) if len(self) > 0 else None
 
     @x_left.setter
     def x_left(self, x_left: int):
-        dx = x_left - self.x_left
+        dx = x_left - self.x_left if len(self) > 0 else 0
         for obj in self:
             obj.x += dx
 
     @property
     def x_right(self) -> int:
-        return max([obj.x_right for obj in self])
+        return max([obj.x_right for obj in self]) if len(self) > 0 else None
 
     @x_right.setter
     def x_right(self, x_right: int):
-        dx = x_right - self.x_right
+        dx = x_right - self.x_right if len(self) > 0 else 0
         for obj in self:
             obj.x += dx
 
     @property
     def y_bottom(self) -> int:
-        return min([obj.y_bottom for obj in self])
+        return min([obj.y_bottom for obj in self]) if len(self) > 0 else None
 
     @y_bottom.setter
     def y_bottom(self, y_bottom: int):
-        dy = y_bottom - self.y_bottom
+        dy = y_bottom - self.y_bottom if len(self) > 0 else 0
         for obj in self:
             obj.y += dy
 
     @property
     def y_top(self) -> int:
-        return max([obj.y_top for obj in self])
+        return max([obj.y_top for obj in self]) if len(self) > 0 else None
 
     @y_top.setter
     def y_top(self, y_top: int):
-        dy = y_top - self.y_top
+        dy = y_top - self.y_top if len(self) > 0 else 0
         for obj in self:
             obj.y += dy
 
     @property
     def width(self) -> int:
-        return self.x_right - self.x_left
+        return self.x_right - self.x_left if len(self) > 0 else 0
     
     @property
     def height(self) -> int:
-        return self.y_top - self.y_bottom
+        return self.y_top - self.y_bottom if len(self) > 0 else 0
 
     @property
     def shape(self) -> (int, int):
@@ -318,11 +320,11 @@ class GameObjectBatch(MultiParameterHandler[H, T]):
 
     @property
     def camera_x(self) -> int:
-        return self.x - self.frame.x
+        return self.x - self.frame.x if len(self) > 0 else None
     
     @property
     def camera_y(self) -> int:
-        return self.y - self.frame.y
+        return self.y - self.frame.y if len(self) > 0 else None
 
     def draw(self):
         self.batch.draw()
@@ -342,16 +344,22 @@ class GameObjectHandler:
         assert len(self.frame.contained_obj_list) == len(self.grid.contained_obj_list)
         assert len(self.renderbox.render_objs) <= len(self.frame.contained_obj_list)
 
-    def append(self, obj):
+    def append(self, obj, to_frame: bool=True, to_grid: bool=True, to_renderbox: bool=True):
         if issubclass(type(obj), GameObject):
-            self.frame.add_obj(obj=obj)
-            self.grid.add_obj(obj=obj)
-            self.renderbox.add_render_obj(obj=obj)
+            if to_frame:
+                self.frame.add_obj(obj=obj)
+            if to_grid:
+                self.grid.add_obj(obj=obj)
+            if to_renderbox:
+                self.renderbox.add_render_obj(obj=obj)
         elif issubclass(type(obj), GameObjectBatch):
             for game_obj in obj:
-                self.frame.add_obj(obj=game_obj)
-                self.grid.add_obj(obj=game_obj)
-            self.renderbox.add_render_obj(obj)
+                if to_frame:
+                    self.frame.add_obj(obj=game_obj)
+                if to_grid:
+                    self.grid.add_obj(obj=game_obj)
+            if to_renderbox:
+                self.renderbox.add_render_obj(obj)
         else:
             raise Error(
                 f"""
@@ -360,6 +368,7 @@ class GameObjectHandler:
                 """
             )
         self.__check_lengths()
+        print(f'[obj.name for obj in self.renderbox.render_objs]:\n{[obj.name for obj in self.renderbox.render_objs]}')
 
     def remove(self, name: str):
         self.frame.remove_obj(name)

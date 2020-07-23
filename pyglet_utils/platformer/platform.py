@@ -26,11 +26,22 @@ class Platform(
     MultiParameterHandler['Platform', 'PlatformBlock']
 ):
     def __init__(self, frame: Frame, grid: Grid, renderbox: RenderBox, batch: Batch=None, blocks: List[PlatformBlock]=None, name: str='PlatformSample0'):
+        print(f'type(blocks): {type(blocks)}')
         super().__init__(
             frame=frame, grid=grid, renderbox=renderbox, name=name, batch=batch,
             obj_type=PlatformBlock, game_objects=blocks
         )
         self.blocks = self.obj_list
+
+    def copy(self) -> Platform:
+        return Platform(
+            frame=self.frame,
+            grid=self.grid,
+            renderbox=self.renderbox,
+            batch=self.batch,
+            blocks=self.blocks.copy(),
+            name=self.name
+        )
 
     @classmethod
     def from_pos_list(
