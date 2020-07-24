@@ -13,7 +13,10 @@ from pyglet_utils.platformer.platform import Platform, PlatformBlock
 from pyglet_utils.platformer.render import RenderBox
 from pyglet_utils.platformer.mouse import Mouse
 from pyglet_utils.platformer.game_obj import GameObjectHandler
+from pyglet_utils.lib.shapes import Rectangle
+from typing import cast
 
+# TODO: Make it so that the block sprite can be previewed with a low opacity before it is placed.
 # TODO: Implement map save/load.
 #       Prerequisite: Map maker
 # TODO: Make it so that the position of objects only need to be calculated when
@@ -39,6 +42,14 @@ class MapMaker:
             Platform(frame=self.frame, grid=self.grid, renderbox=self.renderbox, batch=Batch(), name=f'Platform{len(self.platform_list)}')
         self.game_obj_handler.append(self.block_queue)
 
+        # Block Preview Related
+        self.block_preview_rect_color = None
+        self.current_img = ItemImages.bomb
+        self.block_preview_rect_opacity = 50
+        self.block_preview_sprite_opacity = 130
+        self.block_preview_rect = cast(Rectangle, None)
+        self.block_preview_sprite = cast(Sprite, None)
+
     def add_block_to_queue(self, x: int, y: int, img: AbstractImage):
         self.block_queue.add_block(x=x, y=y, img=img)
         self.game_obj_handler.append(self.block_queue.blocks[-1], to_renderbox=False)
@@ -48,7 +59,7 @@ class MapMaker:
         self.add_block_to_queue(x=x, y=y, img=img)
 
     def add_block_to_queue_from_mouse(self):
-        self.add_block_to_queue_from_space(grid_space_x=self.mouse.grid_space_x, grid_space_y=self.mouse.grid_space_y, img=ItemImages.bomb)
+        self.add_block_to_queue_from_space(grid_space_x=self.mouse.grid_space_x, grid_space_y=self.mouse.grid_space_y, img=self.current_img)
 
     def remove_queue_block(self, name: str):
         self.game_obj_handler.remove(name)
@@ -62,10 +73,40 @@ class MapMaker:
     def remove_queue_block_from_mouse(self):
         self.remove_queue_block_from_space(grid_space_x=self.mouse.grid_space_x, grid_space_y=self.mouse.grid_space_y)
 
-    def push_queue(self): # TODO: Map to button and test functionality
+    def push_queue(self):
         self.platform_list.append(self.block_queue.copy())
         self.block_queue = Platform(frame=self.frame, grid=self.grid, renderbox=self.renderbox, batch=Batch(), name=f'Platform{len(self.platform_list)}')
         self.game_obj_handler.append(self.block_queue)
+    
+    def update_block_preview_rect_color(self):
+        raise NotImplementedError
+
+    def update_block_preview(self):
+        if self.mouse.grid_space_x is not None and self.mouse.grid_space_y is not None:
+            rect_x = self.grid.tile_width * self.mouse.grid_space_x + self.grid.grid_origin_x - self.frame.x
+            rect_y = self.grid.tile_height * self.mouse.grid_space_y + self.grid.grid_origin_y - self.frame.y
+            if self.block_preview_sprite is None:
+                self.block_preview_rect = Rectangle(
+                    x=rect_x, y=rect_y,
+                    width=self.grid.tile_width, height=self.grid.tile_height,
+                    color=(100,255,20), transparency=self.block_preview_rect_opacity
+                )
+                self.block_preview_sprite = Sprite(
+                    img=self.current_img, x=rect_x, y=rect_y
+                )
+                self.block_preview_sprite.opacity = self.block_preview_sprite_opacity
+            else:
+                self.block_preview_rect.move_to(x=rect_x, y=rect_y)
+                self.block_preview_sprite.position = (rect_x, rect_y)
+
+    def reset_block_preview(self):
+        self.block_preview_rect = None
+        self.block_preview_sprite = None
+
+    def draw_block_preview(self):
+        if self.block_preview_sprite is not None:
+            self.block_preview_rect.draw()
+            self.block_preview_sprite.draw()
 
 class GameWindow(Window):
     def __init__(self, width: int, height: int, caption: str):
@@ -142,17 +183,18 @@ class GameWindow(Window):
     def on_mouse_enter(self, x, y):
         self.mouse.enter_window(x=x, y=y)
         self.mouse.update_grid_space()
-        self.mouse.update_cursor_rect()
+        self.map_maker.update_block_preview()
 
     def on_mouse_leave(self, x, y):
         self.mouse.leave_window()
+        self.map_maker.reset_block_preview()
         self.mouse.update_grid_space()
-        self.mouse.update_cursor_rect()
+        self.map_maker.update_block_preview()
 
     def on_mouse_motion(self, x, y, dx, dy):
         self.mouse.move(x=x, y=y, dx=dx, dy=dy)
         self.mouse.update_grid_space()
-        self.mouse.update_cursor_rect()
+        self.map_maker.update_block_preview()
 
     def on_mouse_press(self, x, y, button, modifiers):
         pass
@@ -174,7 +216,7 @@ class GameWindow(Window):
     def on_draw(self):
         self.clear()
         self.renderbox.draw_all_renderable_objects()
-        self.mouse.draw()
+        self.map_maker.draw_block_preview()
         self.grid.draw()
         self.fps_display.draw()
         self.player_coord_label.draw()
@@ -250,7 +292,8 @@ class GameWindow(Window):
             dy = self.player.vy * dt
             self.player.move(dx=dx, dy=dy)
             self.mouse.update_grid_space()
-            self.mouse.update_cursor_rect()
+            # self.mouse.update_cursor_rect()
+            self.map_maker.update_block_preview()
             self.player_coord_label.text = self.grid.get_coords_str(obj_name=self.player.name)
 
     def run(self):
