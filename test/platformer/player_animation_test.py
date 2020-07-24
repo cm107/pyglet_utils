@@ -1,7 +1,6 @@
 import pyglet
 from pyglet_utils.platformer.resources import TileImages, ItemImages
 from pyglet.window import Window, FPSDisplay, mouse as window_mouse
-from pyglet.sprite import Sprite
 from pyglet.window import key
 from pyglet.graphics import Batch
 from pyglet.text import Label
@@ -9,104 +8,17 @@ from pyglet.text import Label
 from pyglet_utils.platformer.player import Player
 from pyglet_utils.platformer.grid import Grid
 from pyglet_utils.platformer.frame import Frame
-from pyglet_utils.platformer.platform import Platform, PlatformBlock
+from pyglet_utils.platformer.platform import Platform
 from pyglet_utils.platformer.render import RenderBox
 from pyglet_utils.platformer.mouse import Mouse
 from pyglet_utils.platformer.game_obj import GameObjectHandler
-from pyglet_utils.lib.shapes import Rectangle
-from typing import cast
+from pyglet_utils.platformer.map import MapMaker
 
 # TODO: Make it so that the block sprite can be previewed with a low opacity before it is placed.
 # TODO: Implement map save/load.
 #       Prerequisite: Map maker
 # TODO: Make it so that the position of objects only need to be calculated when
 #       they are inside of the RenderBox.
-
-from typing import List
-from pyglet.image import AbstractImage
-
-class MapMaker:
-    def __init__(
-        self, frame: Frame, grid: Grid, renderbox: RenderBox, mouse: Mouse, game_obj_handler: GameObjectHandler,
-        platform_list: List[Platform]=None, block_queue: Platform=None
-    ):
-        self.frame = frame
-        self.grid = grid
-        self.renderbox = renderbox
-        self.mouse = mouse
-        self.game_obj_handler = game_obj_handler
-        self.platform_list = platform_list if platform_list is not None else []
-        for platform in self.platform_list:
-            self.game_obj_handler.append(platform)
-        self.block_queue = block_queue if block_queue is not None else \
-            Platform(frame=self.frame, grid=self.grid, renderbox=self.renderbox, batch=Batch(), name=f'Platform{len(self.platform_list)}')
-        self.game_obj_handler.append(self.block_queue)
-
-        # Block Preview Related
-        self.block_preview_rect_color = None
-        self.current_img = ItemImages.bomb
-        self.block_preview_rect_opacity = 50
-        self.block_preview_sprite_opacity = 130
-        self.block_preview_rect = cast(Rectangle, None)
-        self.block_preview_sprite = cast(Sprite, None)
-
-    def add_block_to_queue(self, x: int, y: int, img: AbstractImage):
-        self.block_queue.add_block(x=x, y=y, img=img)
-        self.game_obj_handler.append(self.block_queue.blocks[-1], to_renderbox=False)
-    
-    def add_block_to_queue_from_space(self, grid_space_x: int, grid_space_y: int, img: AbstractImage):
-        x, y = self.grid.grid_space_to_world_coord(space_x=grid_space_x, space_y=grid_space_y)
-        self.add_block_to_queue(x=x, y=y, img=img)
-
-    def add_block_to_queue_from_mouse(self):
-        self.add_block_to_queue_from_space(grid_space_x=self.mouse.grid_space_x, grid_space_y=self.mouse.grid_space_y, img=self.current_img)
-
-    def remove_queue_block(self, name: str):
-        self.game_obj_handler.remove(name)
-        self.block_queue.remove_block(name=name)
-
-    def remove_queue_block_from_space(self, grid_space_x: int, grid_space_y: int):
-        names = self.grid.grid_spaces_to_names([(grid_space_x, grid_space_y)])
-        for name in names:
-            self.remove_queue_block(name=name)
-
-    def remove_queue_block_from_mouse(self):
-        self.remove_queue_block_from_space(grid_space_x=self.mouse.grid_space_x, grid_space_y=self.mouse.grid_space_y)
-
-    def push_queue(self):
-        self.platform_list.append(self.block_queue.copy())
-        self.block_queue = Platform(frame=self.frame, grid=self.grid, renderbox=self.renderbox, batch=Batch(), name=f'Platform{len(self.platform_list)}')
-        self.game_obj_handler.append(self.block_queue)
-    
-    def update_block_preview_rect_color(self):
-        raise NotImplementedError
-
-    def update_block_preview(self):
-        if self.mouse.grid_space_x is not None and self.mouse.grid_space_y is not None:
-            rect_x = self.grid.tile_width * self.mouse.grid_space_x + self.grid.grid_origin_x - self.frame.x
-            rect_y = self.grid.tile_height * self.mouse.grid_space_y + self.grid.grid_origin_y - self.frame.y
-            if self.block_preview_sprite is None:
-                self.block_preview_rect = Rectangle(
-                    x=rect_x, y=rect_y,
-                    width=self.grid.tile_width, height=self.grid.tile_height,
-                    color=(100,255,20), transparency=self.block_preview_rect_opacity
-                )
-                self.block_preview_sprite = Sprite(
-                    img=self.current_img, x=rect_x, y=rect_y
-                )
-                self.block_preview_sprite.opacity = self.block_preview_sprite_opacity
-            else:
-                self.block_preview_rect.move_to(x=rect_x, y=rect_y)
-                self.block_preview_sprite.position = (rect_x, rect_y)
-
-    def reset_block_preview(self):
-        self.block_preview_rect = None
-        self.block_preview_sprite = None
-
-    def draw_block_preview(self):
-        if self.block_preview_sprite is not None:
-            self.block_preview_rect.draw()
-            self.block_preview_sprite.draw()
 
 class GameWindow(Window):
     def __init__(self, width: int, height: int, caption: str):
@@ -250,6 +162,10 @@ class GameWindow(Window):
                 self.toggle_debug()
             elif symbol == key.Q:
                 self.map_maker.push_queue()
+            elif symbol == key.NUM_1:
+                self.map_maker.toggle_block_preview_img()
+            elif symbol == key.NUM_2:
+                self.map_maker.toggle_block_preview_selector()
             elif symbol == key.P:
                 self.toggle_pause()
             elif symbol == key.ESCAPE:
@@ -267,6 +183,10 @@ class GameWindow(Window):
                 self.toggle_debug()
             elif symbol == key.Q:
                 self.map_maker.push_queue()
+            elif symbol == key.NUM_1:
+                self.map_maker.toggle_block_preview_img()
+            elif symbol == key.NUM_2:
+                self.map_maker.toggle_block_preview_selector()
 
     def on_key_release(self, symbol, modifiers):
         if not self.paused:
