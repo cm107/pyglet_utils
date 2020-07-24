@@ -43,7 +43,7 @@ class Player(GameObject):
 
         # Initialize Base Class
         super().__init__(
-            x=x, y=y, img=self.player_res.jump_right, frame=frame, grid=grid, renderbox=renderbox, name=name,
+            x=x, y=y, res=self.player_res.jump_right, frame=frame, grid=grid, renderbox=renderbox, name=name,
             batch=batch, usage='dynamic',
             is_anchor_x_centered=True
         )
@@ -113,23 +113,23 @@ class Player(GameObject):
     def update_sprite(self):
         if self.status == 'idle':
             if self.facing == 'right':
-                self.change_sprite(self.player_res.idle_right)
+                self.change_sprite(self.player_res.idle_right.img)
             elif self.facing == 'left':
-                self.change_sprite(self.player_res.idle_left)
+                self.change_sprite(self.player_res.idle_left.img)
             else:
                 raise Exception
         elif self.status == 'jumping':
             if self.facing == 'right':
-                self.change_sprite(self.player_res.jump_right)
+                self.change_sprite(self.player_res.jump_right.img)
             elif self.facing == 'left':
-                self.change_sprite(self.player_res.jump_left)
+                self.change_sprite(self.player_res.jump_left.img)
             else:
                 raise Exception
         elif self.status == 'walking':
             if self.facing == 'right':
-                self.change_sprite(self.player_res.walk_right_anim)
+                self.change_sprite(self.player_res.walk_right_anim.animation)
             elif self.facing == 'left':
-                self.change_sprite(self.player_res.walk_left_anim)
+                self.change_sprite(self.player_res.walk_left_anim.animation)
             else:
                 raise Exception
         else:

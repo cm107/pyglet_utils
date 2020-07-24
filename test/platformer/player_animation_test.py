@@ -14,11 +14,10 @@ from pyglet_utils.platformer.mouse import Mouse
 from pyglet_utils.platformer.game_obj import GameObjectHandler
 from pyglet_utils.platformer.map import MapMaker
 
-# TODO: Make it so that the block sprite can be previewed with a low opacity before it is placed.
 # TODO: Implement map save/load.
 #       Prerequisite: Map maker
-# TODO: Make it so that the position of objects only need to be calculated when
-#       they are inside of the RenderBox.
+# TODO: Make it so that only the occupied spaces inside of the RenderBox need to be considered at all times.
+# TODO: Make it so that the occupied spaces in Grid only need to be calculated when the frame moves.
 
 class GameWindow(Window):
     def __init__(self, width: int, height: int, caption: str):
@@ -45,12 +44,12 @@ class GameWindow(Window):
         self.game_obj_handler = GameObjectHandler(frame=self.frame, grid=self.grid, renderbox=self.renderbox)
 
         # Create Ground
-        dirt_img = TileImages.dirtRight
+        dirt_res = TileImages.dirtRight
         ground_grid_pos_list = [
             (-1, -1), (0, -1), (1, -1), (2, -1), (3, -1), (4, -1), (5, -1), (6, -1), (7, -1), (8, -1)
         ]
         platform = Platform.from_grid_space_coords(
-            grid_pos_list=ground_grid_pos_list, img_list=[dirt_img], batch=Batch(),
+            grid_pos_list=ground_grid_pos_list, res_img_list=[dirt_res], batch=Batch(),
             frame=self.frame, grid=self.grid, renderbox=self.renderbox, name='Platform0'
         )
 
@@ -162,10 +161,12 @@ class GameWindow(Window):
                 self.toggle_debug()
             elif symbol == key.Q:
                 self.map_maker.push_queue()
-            elif symbol == key.NUM_1:
+            elif symbol == key.NUM_1 or symbol == key._1:
                 self.map_maker.toggle_block_preview_img()
-            elif symbol == key.NUM_2:
+            elif symbol == key.NUM_2 or symbol == key._2:
                 self.map_maker.toggle_block_preview_selector()
+            elif symbol == key.NUM_3 or symbol == key._3:
+                self.game_obj_handler.dump_save_dict(save_path='save_dump.json', overwrite=True)
             elif symbol == key.P:
                 self.toggle_pause()
             elif symbol == key.ESCAPE:
@@ -183,10 +184,12 @@ class GameWindow(Window):
                 self.toggle_debug()
             elif symbol == key.Q:
                 self.map_maker.push_queue()
-            elif symbol == key.NUM_1:
+            elif symbol == key.NUM_1 or symbol == key._1:
                 self.map_maker.toggle_block_preview_img()
-            elif symbol == key.NUM_2:
+            elif symbol == key.NUM_2 or symbol == key._2:
                 self.map_maker.toggle_block_preview_selector()
+            elif symbol == key.NUM_3 or symbol == key._3:
+                self.game_obj_handler.dump_save_dict(save_path='save_dump.json', overwrite=True)
 
     def on_key_release(self, symbol, modifiers):
         if not self.paused:
@@ -212,7 +215,6 @@ class GameWindow(Window):
             dy = self.player.vy * dt
             self.player.move(dx=dx, dy=dy)
             self.mouse.update_grid_space()
-            # self.mouse.update_cursor_rect()
             self.map_maker.update_block_preview()
             self.player_coord_label.text = self.grid.get_coords_str(obj_name=self.player.name)
 

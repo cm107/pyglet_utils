@@ -1,8 +1,10 @@
+import json
 from abc import abstractclassmethod
 from typing import List, TypeVar
 from pyglet.sprite import Sprite
 from pyglet.graphics import Batch
 from pyglet.image import AbstractImage, Animation
+from .resources import ResourceImage, ResourceAnimation
 from .frame import Frame
 from .grid import Grid
 from .render import RenderBox
@@ -11,10 +13,11 @@ from ..lib.exception_handler import Error
 from logger import logger
 from common_utils.base.basic import MultiParameterHandler
 from common_utils.check_utils import check_issubclass
+from common_utils.file_utils import file_exists
 
 class GameObject:
     def __init__(
-        self, x: int, y: int, img: AbstractImage, frame: Frame, grid: Grid, renderbox: RenderBox, name: str,
+        self, x: int, y: int, res, frame: Frame, grid: Grid, renderbox: RenderBox, name: str,
         batch: Batch=None, usage: str='dynamic',
         is_anchor_x_centered: bool=False, parent_name: str=None
     ):
@@ -22,11 +25,15 @@ class GameObject:
         self._grid = grid
         self._renderbox = renderbox
         self._x, self._y = x, y
-        if not isinstance(img, (AbstractImage, Animation)):
-            logger.error(f'img must be an instance of AbstractImage or Animation')
-            logger.error(f'type(img): {type(img)}')
+        if isinstance(res, ResourceImage):
+            self._sprite = Sprite(img=res.img, x=self.camera_x, y=self.camera_y, batch=batch, usage=usage)
+        elif isinstance(res, ResourceAnimation):
+            self._sprite = Sprite(img=res.animation, x=self.camera_x, y=self.camera_y, batch=batch, usage=usage)
+        else:
+            logger.error(f'res must be an instance of ResourceImage or ResourceAnimation')
+            logger.error(f'type(res): {type(res)}')
             raise Exception
-        self._sprite = Sprite(img=img, x=self.camera_x, y=self.camera_y, batch=batch, usage=usage)
+        self._resource_dict = res.to_dict()
         self._name = name
         self._parent_name = parent_name
         self._batch = batch
@@ -47,7 +54,11 @@ class GameObject:
     @property
     def sprite(self) -> Sprite:
         return self._sprite
-    
+
+    @property
+    def resource_dict(self) -> dict:
+        return self._resource_dict
+
     @property
     def name(self) -> str:
         return self._name
@@ -338,11 +349,60 @@ class GameObjectHandler:
         # Batch Based
         self.renderbox = renderbox
 
+        # Resource Related
+        self.save_dict = {
+            'nonbatch_objects': {},
+            'batch_objects': {}
+        }
+
         self.__check_lengths()
     
     def __check_lengths(self):
         assert len(self.frame.contained_obj_list) == len(self.grid.contained_obj_list)
         assert len(self.renderbox.render_objs) <= len(self.frame.contained_obj_list)
+
+    def __append_to_save_dict(self, obj, to_frame: bool=True, to_grid: bool=True, to_renderbox: bool=True):
+        # TODO: Fix the problem where PlatformBlocks are added to nonbatch_objects.
+        if issubclass(type(obj), GameObject):
+            if obj.name not in self.save_dict['nonbatch_objects']:
+                self.save_dict['nonbatch_objects'][obj.name] = {
+                    'in_frame_objs': to_frame,
+                    'in_grid_objs': to_grid,
+                    'in_renderbox_objs': to_renderbox,
+                    'resource_info': obj.resource_dict
+                }
+            else:
+                self.save_dict['nonbatch_objects'][obj.name] = {
+                    'in_frame_objs': to_frame or self.save_dict['nonbatch_objects'][obj.name]['in_frame_objs'],
+                    'in_grid_objs': to_grid or self.save_dict['nonbatch_objects'][obj.name]['in_grid_objs'],
+                    'in_renderbox_objs': to_renderbox or self.save_dict['nonbatch_objects'][obj.name]['in_renderbox_objs'],
+                    'resource_info': obj.resource_dict
+                }
+        elif issubclass(type(obj), GameObjectBatch):
+            if obj.name not in self.save_dict['batch_objects']:
+                self.save_dict['batch_objects'][obj.name] = {
+                    'in_frame_objs': to_frame,
+                    'in_grid_objs': to_grid,
+                    'in_renderbox_objs': to_renderbox,
+                    'contained_objects': {
+                        game_obj.name: {
+                            'resource_info': game_obj.resource_dict
+                        } for game_obj in obj
+                    }
+                }
+            else:
+                self.save_dict['batch_objects'][obj.name] = {
+                    'in_frame_objs': to_frame or self.save_dict['batch_objects'][obj.name]['in_frame_objs'],
+                    'in_grid_objs': to_grid or self.save_dict['batch_objects'][obj.name]['in_grid_objs'],
+                    'in_renderbox_objs': to_renderbox or self.save_dict['batch_objects'][obj.name]['in_renderbox_objs'],
+                    'contained_objects': {
+                        game_obj.name: {
+                            'resource_info': game_obj.resource_dict
+                        } for game_obj in obj
+                    }
+                }
+        else:
+            raise Exception
 
     def append(self, obj, to_frame: bool=True, to_grid: bool=True, to_renderbox: bool=True):
         if issubclass(type(obj), GameObject):
@@ -367,11 +427,31 @@ class GameObjectHandler:
                 {type(obj)} isn't a subclass of either GameObject or GameObjectBatch.
                 """
             )
+        self.__append_to_save_dict(obj=obj, to_frame=to_frame, to_grid=to_grid, to_renderbox=to_renderbox)
         self.__check_lengths()
         print(f'[obj.name for obj in self.renderbox.render_objs]:\n{[obj.name for obj in self.renderbox.render_objs]}')
+
+    def __remove_from_save_dict(self, name: str):
+        if name in self.save_dict['nonbatch_objects'].keys():
+            del self.save_dict['nonbatch_objects'][name]
+        elif name in self.save_dict['batch_objects'].keys():
+            del self.save_dict['batch_objects'][name]
+        else:
+            raise Error(
+                f"""
+                Failed to find object by the name of '{name}' in GameObjectHandler.save_dict.
+                Remove failed.
+                """
+            )
 
     def remove(self, name: str):
         self.frame.remove_obj(name)
         self.grid.remove_obj(name)
         self.renderbox.remove_render_obj(name)
+        self.__remove_from_save_dict(name)
         self.__check_lengths()
+    
+    def dump_save_dict(self, save_path: str, overwrite: bool=False):
+        if file_exists(save_path) and not overwrite:
+            raise Error(f'File already exists at save_path: {save_path}')
+        json.dump(self.save_dict, open(save_path, 'w'), indent=2, ensure_ascii=False)
